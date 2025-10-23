@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">CityGoProject</string>
+    <string name="hint_email_username">邮箱/用户名</string>
+    <string name="hint_password">密码</string>
+    <string name="button_login">登录</string>
+    <string name="button_register_prompt">还没有账户？立即注册</string>
+    <string name="app_logo_description">App Logo</string>
+    <string name="preference_title">选择你感兴趣的标签</string>
+    <string name="preference_subtitle">告诉我们你的喜好，以便为你推荐更合心意的路线。</string>
+    <string name="button_finish_onboarding">完成，开启旅程！</string>
+</resources>
