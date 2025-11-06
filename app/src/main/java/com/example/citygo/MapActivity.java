@@ -128,7 +128,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             }
         }
         if (totalDays == 0 || originalAttractionNames.isEmpty()) {
-            Toast.makeText(this, "接收到的行程数据不完整", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.toast_incomplete_trip), Toast.LENGTH_LONG).show();
             return;
         }
 
@@ -137,7 +137,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     private void fetchWeatherForDay(int day) {
         List<LatLonPoint> dayPoints = dailyPlans.get(day);
         if (dayPoints == null || dayPoints.isEmpty()) {
-            binding.weatherText.setText("无行程信息");
+            binding.weatherText.setText(getString(R.string.weather_no_info));
             binding.weatherIcon.setImageResource(0);
             return;
         }
@@ -180,7 +180,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
                 String tempMin = "--";
                 String tempMax = "--";
-                String textDay = "未知";
+                String textDay = getString(R.string.text_day);
                 String icon = "";
 
                 // 遍历返回的3天预报，找到与我们目标日期匹配的那一天
@@ -213,7 +213,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> binding.weatherText.setText("天气获取失败"));
+                runOnUiThread(() -> binding.weatherText.setText(getString(R.string.toast_weather_failed)));
             }
         });
     }
@@ -227,9 +227,9 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         String attractionToRemove = currentDayNames.get(position);
 
         new AlertDialog.Builder(this)
-                .setTitle("确认删除")
-                .setMessage("确定要从行程中移除 " + attractionToRemove + " 吗？")
-                .setPositiveButton("删除", (dialog, which) -> {
+                .setTitle(R.string.dialog_delete_title)
+                .setMessage(getString(R.string.dialog_delete_message, attractionToRemove))
+                .setPositiveButton(R.string.dialog_delete_confirm, (dialog, which) -> {
                     // 从数据模型中移除
                     currentDayNames.remove(position);
                     dailyPlans.get(currentSelectedDay).remove(position);
@@ -246,7 +246,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                     // 刷新地图和列表
                     displayPlanForDay(currentSelectedDay);
                 })
-                .setNegativeButton("取消", null)
+                .setNegativeButton(R.string.dialog_delete_cancel, null)
                 .show();
     }
 
@@ -311,7 +311,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
         // 检查是否已添加
         if (currentDayNames.contains(poi.getTitle())) {
-            Toast.makeText(this, poi.getTitle() + " 已在行程中", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_already_in_trip, poi.getTitle()), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -330,14 +330,14 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         dailyPlanNames.put(currentSelectedDay, optimalDayRouteNames);
         dailyPlans.put(currentSelectedDay, optimalDayPoints);
 
-        Toast.makeText(this, "已添加 " + poi.getTitle() + " 到第 " + currentSelectedDay + " 天", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.toast_added_to_day, poi.getTitle(), currentSelectedDay), Toast.LENGTH_SHORT).show();
 
         // **刷新整个当天的显示**
         displayPlanForDay(currentSelectedDay);
     }
 
     private void startSmartPlanning() {
-        Toast.makeText(this, "正在定位城市...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.toast_locating_city), Toast.LENGTH_SHORT).show();
         try {
             geocodeSearch = new GeocodeSearch(this);
             geocodeSearch.setOnGeocodeSearchListener(this);
@@ -356,7 +356,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     }
     private void poiSearchAllAttractions() {
         Log.d(TAG, "Step 2: Starting POI search...");
-        Toast.makeText(this, "正在解析景点位置...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.toast_parsing_attraction), Toast.LENGTH_SHORT).show();
 
         hasRetried = false;
         this.attractionsToSearch = new ArrayList<>(this.originalAttractionNames);
@@ -389,7 +389,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
         if (!missingAttractions.isEmpty() && !hasRetried) {
             Log.d(TAG, "First pass failed. Retrying...");
-            Toast.makeText(this, "部分景点搜索失败，正在自动重试...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_partial_search_failed), Toast.LENGTH_SHORT).show();
 
             this.hasRetried = true;
             this.attractionsToSearch = missingAttractions;
@@ -401,13 +401,14 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
         if (!missingAttractions.isEmpty()) {
             String missingStr = TextUtils.join(", ", missingAttractions);
-            Toast.makeText(this, "未能找到以下景点: " + missingStr, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.toast_missing_attractions, missingStr), Toast.LENGTH_LONG).show();
         }
 
-        if(attractionPoints.isEmpty()) {
-            Toast.makeText(this, "所有景点都未能解析成功", Toast.LENGTH_LONG).show();
+        if (attractionPoints.isEmpty()) {
+            Toast.makeText(this, getString(R.string.toast_all_parsing_failed), Toast.LENGTH_LONG).show();
             return;
         }
+
 
         distributeAttractionsToDays();
         setupDaySwitcherUI();
@@ -416,16 +417,17 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     @Override
     public void onGeocodeSearched(GeocodeResult geocodeResult, int rCode) {
         if (geocodeResult == null) {
-            Toast.makeText(this, "无法定位到城市：" + city, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.toast_locate_city_failed, city), Toast.LENGTH_LONG).show();
             return;
         }
+
         if (rCode == AMapException.CODE_AMAP_SUCCESS && geocodeResult.getGeocodeAddressList() != null && !geocodeResult.getGeocodeAddressList().isEmpty()) {
             GeocodeAddress address = geocodeResult.getGeocodeAddressList().get(0);
             LatLonPoint point = address.getLatLonPoint();
             moveCameraToLocation(point.getLatitude(), point.getLongitude());
             poiSearchAllAttractions();
         } else {
-            Toast.makeText(this, "无法定位到城市：" + city, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, getString(R.string.toast_locate_city_failed, city), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -440,16 +442,17 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                         MarkerOptions markerOptions = new MarkerOptions()
                                 .position(new LatLng(poi.getLatLonPoint().getLatitude(), poi.getLatLonPoint().getLongitude()))
                                 .title(poi.getTitle())
-                                .snippet("点击添加到本日行程") // InfoWindow 的内容
+                                .snippet(getString(R.string.snippet_add_to_trip)) // InfoWindow 的内容
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                         Marker marker = aMap.addMarker(markerOptions);
                         nearbyPoiMarkers.add(marker);
                         markerPoiItemMap.put(marker, poi); // **关联 Marker 和 POI 数据**
                     }
-                    Toast.makeText(this, "已在地图上标记出推荐地点", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.toast_marked_recommendations), Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "附近500米内没有找到相关地点", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, getString(R.string.toast_no_nearby_places), Toast.LENGTH_SHORT).show();
                 }
+
             }
             poiSearch.setBound(null);
         }
@@ -469,14 +472,15 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
     @Override
     public void onSearchNearbyClick(String attractionName) {
-        Toast.makeText(this, "正在搜索 " + attractionName + " 附近的餐厅...", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.toast_search_nearby, attractionName), Toast.LENGTH_SHORT).show();
         LatLonPoint centerPoint = attractionPoints.get(attractionName);
         if (centerPoint == null) {
-            Toast.makeText(this, "无法获取该景点的位置", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_no_location_info), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        PoiSearch.Query query = new PoiSearch.Query("餐厅|咖啡馆", "050000", city);
+
+        PoiSearch.Query query = new PoiSearch.Query(getString(R.string.poi_search_query), "050000", city);
         query.setPageSize(10);
         query.setPageNum(0);
         PoiSearch.SearchBound bound = new PoiSearch.SearchBound(centerPoint, 500);

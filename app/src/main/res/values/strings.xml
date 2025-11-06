@@ -8,4 +8,68 @@
     <string name="preference_title">选择你感兴趣的标签</string>
     <string name="preference_subtitle">告诉我们你的喜好，以便为你推荐更合心意的路线。</string>
     <string name="button_finish_onboarding">完成，开启旅程！</string>
+    <string name="toast_incomplete_trip">接收到的行程数据不完整</string>
+    <string name="weather_no_info">无行程信息</string>
+    <string name="text_day">未知</string>
+    <string name="toast_weather_failed">天气获取失败</string>
+    <string name="dialog_delete_title">确认删除</string>
+    <string name="dialog_delete_message">确定要从行程中移除 %1$s 吗？</string>
+    <string name="dialog_delete_confirm">删除</string>
+    <string name="dialog_delete_cancel">取消</string>
+    <string name="toast_already_in_trip">%1$s 已在行程中</string>
+    <string name="toast_added_to_day">已添加 %1$s 到第 %2$d 天</string>
+    <string name="toast_locating_city">正在定位城市...</string>
+    <string name="toast_parsing_attraction">正在解析景点位置...</string>
+    <string name="toast_partial_search_failed">部分景点搜索失败，正在自动重试...</string>
+    <string name="toast_missing_attractions">未能找到以下景点: %1$s</string>
+    <string name="toast_all_parsing_failed">所有景点都未能解析成功</string>
+    <string name="toast_locate_city_failed">无法定位到城市：%1$s</string>
+    <string name="snippet_add_to_trip">点击添加到本日行程</string>
+    <string name="toast_marked_recommendations">已在地图上标记出推荐地点</string>
+    <string name="toast_no_nearby_places">附近500米内没有找到相关地点</string>
+    <string name="toast_search_nearby">正在搜索 %1$s 附近的餐厅...</string>
+    <string name="toast_no_location_info">无法获取该景点的位置</string>
+    <string name="poi_search_query">餐厅|咖啡馆</string>
+
+    <string name="toast_select_at_least_one_tag">请至少选择一个你感兴趣的标签</string>
+    <string name="toast_preferences_saved">偏好已保存，开始你的城市之旅吧！</string>
+
+    <string-array name="preference_tags">
+        <item>美食探店</item>
+        <item>咖啡文化</item>
+        <item>历史古迹</item>
+        <item>艺术画廊</item>
+        <item>购物中心</item>
+        <item>公园绿地</item>
+        <item>现场音乐</item>
+        <item>建筑欣赏</item>
+        <item>本地市集</item>
+        <item>网红打卡</item>
+        <item>亲子活动</item>
+        <item>静谧小巷</item>
+    </string-array>
+
+    <string name="toast_fill_all_info">请填写所有信息，包括开始日期</string>
+
+
+    <string name="title_create_citywalk">创建新的 CityWalk</string>
+    <string name="hint_destination_city">目的地城市 (例如：北京)</string>
+    <string name="hint_attractions">想去的景点 (用逗号 , 分隔)</string>
+    <string name="hint_days">旅行天数</string>
+    <string name="button_select_start_date">选择开始日期</string>
+    <string name="button_generate_plan">智能生成行程</string>
+    <string name="default_attractions">天安门,故宫,南锣鼓巷,颐和园,天坛,王府井</string>
+    <string name="my_citywalk_plan">我的 CityWalk 计划</string>
+    <string name="no_trips_message">你还没有创建任何旅行计划。&#10;点击右下角的 \'+\' 按钮开始吧！</string>
+    <string name="create_new_trip_description">创建新旅行</string>
+    <string name="weather_example">晴 25°C</string>
+
+    <string name="attraction_name">景点名称</string>
+    <string name="button_search_nearby">搜周边</string>
+    <string name="drag_or_delete">拖拽或删除</string>
+
+
+
+
+
 </resources>

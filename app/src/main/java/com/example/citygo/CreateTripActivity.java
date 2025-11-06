@@ -78,7 +78,7 @@ public class CreateTripActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(city) || TextUtils.isEmpty(attractions) || TextUtils.isEmpty(daysStr) || selectedDate == null) {
             // --- DEBUG: 如果校验失败，打印一条错误日志 ---
             Log.e(TAG, "Validation FAILED. One or more fields are empty. Halting process.");
-            Toast.makeText(this, "请填写所有信息，包括开始日期", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_fill_all_info), Toast.LENGTH_SHORT).show();
             return;
 
         }

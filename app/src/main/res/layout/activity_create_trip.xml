@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="创建新的 CityWalk"
+            android:text="@string/title_create_citywalk"
             android:textSize="24sp"
             android:textStyle="bold" />
 
@@ -23,7 +23,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:hint="目的地城市 (例如：北京)">
+            android:hint="@string/hint_destination_city">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/cityEditText"
                 android:layout_width="match_parent"
@@ -34,7 +34,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:hint="想去的景点 (用逗号 , 分隔)">
+            android:hint="@string/hint_attractions">
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/attractionsEditText"
                 android:layout_width="match_parent"
@@ -42,7 +42,7 @@
                 android:gravity="top"
                 android:inputType="textMultiLine"
                 android:lines="3"
-                android:text="天安门,故宫,南锣鼓巷,颐和园,天坛,王府井"/>
+                android:text="@string/default_attractions"/>
         </com.google.android.material.textfield.TextInputLayout>
 
         <LinearLayout
@@ -54,7 +54,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="旅行天数">
+                android:hint="@string/hint_days">
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/daysEditText"
                     android:layout_width="match_parent"
@@ -71,7 +71,8 @@
                 android:layout_weight="1"
                 android:layout_gravity="center"
                 android:layout_marginStart="16dp"
-                android:text="选择开始日期"/>
+                android:text="@string/button_select_start_date"/>
+
         </LinearLayout>
 
 
@@ -81,7 +82,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:padding="12dp"
-            android:text="智能生成行程" />
+            android:text="@string/button_generate_plan" />
 
     </LinearLayout>
 </ScrollView>

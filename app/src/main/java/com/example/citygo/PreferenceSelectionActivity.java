@@ -18,18 +18,15 @@ import java.util.List;
 public class PreferenceSelectionActivity extends AppCompatActivity {
 
     private ActivityPreferenceSelectionBinding binding;
-
-    private final String[] PREFERENCE_TAGS = {
-            "美食探店", "咖啡文化", "历史古迹", "艺术画廊", "购物中心",
-            "公园绿地", "现场音乐", "建筑欣赏", "本地市集", "网红打卡",
-            "亲子活动", "静谧小巷"
-    };
+    private String[] PREFERENCE_TAGS;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityPreferenceSelectionBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        PREFERENCE_TAGS = getResources().getStringArray(R.array.preference_tags);
 
         populateChipGroup();
 
@@ -54,7 +51,7 @@ public class PreferenceSelectionActivity extends AppCompatActivity {
         List<Integer> checkedChipIds = binding.preferenceChipGroup.getCheckedChipIds();
 
         if (checkedChipIds.isEmpty()) {
-            Toast.makeText(this, "请至少选择一个你感兴趣的标签", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, getString(R.string.toast_select_at_least_one_tag), Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -72,7 +69,7 @@ public class PreferenceSelectionActivity extends AppCompatActivity {
         editor.putBoolean("is_onboarding_complete", true);
         editor.apply();
 
-        Toast.makeText(this, "偏好已保存，开始你的城市之旅吧！", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, getString(R.string.toast_preferences_saved), Toast.LENGTH_SHORT).show();
 
         Intent intent = new Intent(PreferenceSelectionActivity.this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);

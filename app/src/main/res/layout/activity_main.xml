@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="我的 CityWalk 计划"
+            android:text="@string/my_citywalk_plan"
             android:textSize="24sp"
             android:textStyle="bold"
             android:padding="16dp"/>
@@ -24,7 +24,7 @@
             android:id="@+id/emptyView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="你还没有创建任何旅行计划。\n点击右下角的 '+' 按钮开始吧！"
+            android:text="@string/no_trips_message"
             android:layout_gravity="center"
             android:layout_marginTop="100dp"
             android:gravity="center"
@@ -39,7 +39,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="创建新旅行"
+        android:contentDescription="@string/create_new_trip_description"
         app:srcCompat="@android:drawable/ic_input_add" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

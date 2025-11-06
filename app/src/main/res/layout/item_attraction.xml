@@ -13,7 +13,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:text="景点名称"
+        android:text="@string/attraction_name"
         android:textSize="16sp"
         android:textColor="@android:color/black"/>
 
@@ -22,7 +22,7 @@
         style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="搜周边"/>
+        android:text="@string/button_search_nearby"/>
 
     <ImageView
         android:id="@+id/dragHandle"
@@ -30,7 +30,7 @@
         android:layout_height="48dp"
         android:padding="12dp"
         android:src="@android:drawable/ic_menu_sort_by_size"
-        android:contentDescription="拖拽或删除"
+        android:contentDescription="@string/drag_or_delete"
         android:alpha="0.6"/>
 
 </LinearLayout>

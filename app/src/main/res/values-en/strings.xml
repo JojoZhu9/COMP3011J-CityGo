@@ -1,0 +1,73 @@
+<resources>
+    <string name="app_name">CityGoProject</string>
+    <string name="hint_email_username">Email / Username</string>
+    <string name="hint_password">Password</string>
+    <string name="button_login">Log in</string>
+    <string name="button_register_prompt">Don\'t have an account? Sign up now</string>
+    <string name="app_logo_description">App Logo</string>
+    <string name="preference_title">Choose the tags you\'re interested in</string>
+    <string name="preference_subtitle">Tell us your preferences so we can recommend routes you\'ll love.</string>
+    <string name="button_finish_onboarding">Done — start your journey!</string>
+    <string name="toast_incomplete_trip">Received incomplete trip data</string>
+    <string name="weather_no_info">No itinerary information</string>
+    <string name="text_day">Unknown</string>
+    <string name="toast_weather_failed">Failed to retrieve weather</string>
+    <string name="dialog_delete_title">Confirm deletion</string>
+    <string name="dialog_delete_message">Are you sure you want to remove %1$s from your itinerary?</string>
+    <string name="dialog_delete_confirm">Delete</string>
+    <string name="dialog_delete_cancel">Cancel</string>
+    <string name="toast_already_in_trip">%1$s is already in your itinerary</string>
+    <string name="toast_added_to_day">Added %1$s to Day %2$d</string>
+    <string name="toast_locating_city">Locating city...</string>
+    <string name="toast_parsing_attraction">Parsing attraction locations...</string>
+    <string name="toast_partial_search_failed">Some attractions failed to load. Retrying...</string>
+    <string name="toast_missing_attractions">Could not find the following attractions: %1$s</string>
+    <string name="toast_all_parsing_failed">Failed to parse all attractions</string>
+    <string name="toast_locate_city_failed">Unable to locate city: %1$s</string>
+    <string name="snippet_add_to_trip">Tap to add to today’s itinerary</string>
+    <string name="toast_marked_recommendations">Recommended places marked on map</string>
+    <string name="toast_no_nearby_places">No nearby places found within 500 meters</string>
+    <string name="toast_search_nearby">Searching for restaurants near %1$s...</string>
+    <string name="toast_no_location_info">Unable to get this attraction’s location</string>
+    <string name="poi_search_query">restaurant|cafe</string>
+
+    <string name="toast_select_at_least_one_tag">Please select at least one tag you are interested in</string>
+    <string name="toast_preferences_saved">Preferences saved! Start your city adventure now!</string>
+
+    <string-array name="preference_tags">
+        <item>Food &amp; Dining</item>
+        <item>Coffee Culture</item>
+        <item>Historical Sites</item>
+        <item>Art Galleries</item>
+        <item>Shopping Centers</item>
+        <item>Parks</item>
+        <item>Live Music</item>
+        <item>Architectural Appreciation</item>
+        <item>Local Markets</item>
+        <item>Instagram Spots</item>
+        <item>Family Activities</item>
+        <item>Quiet Alleys</item>
+    </string-array>
+
+    <string name="toast_fill_all_info">Please fill in all information, including the start date</string>
+
+    <string name="title_create_citywalk">Create a new CityWalk</string>
+    <string name="hint_destination_city">Destination city (e.g., Beijing)</string>
+    <string name="hint_attractions">Attractions to visit (comma-separated)</string>
+    <string name="hint_days">Number of days</string>
+    <string name="button_select_start_date">Select start date</string>
+    <string name="button_generate_plan">Generate itinerary</string>
+    <string name="default_attractions">Tiananmen, Forbidden City, Nanluoguxiang, Summer Palace, Temple of Heaven, Wangfujing</string>
+    <string name="my_citywalk_plan">My CityWalk Plan</string>
+    <string name="no_trips_message">You haven\'t created any trips yet.&#10;Tap the \'+\' button in the bottom right to start!</string>
+    <string name="create_new_trip_description">Create New Trip</string>
+    <string name="weather_example">Sunny 25°C</string>
+
+    <string name="attraction_name">Attraction Name</string>
+    <string name="button_search_nearby">Search Nearby</string>
+    <string name="drag_or_delete">Drag or delete</string>
+
+
+
+
+</resources>
