@@ -11,9 +11,11 @@
     <ImageButton
         android:id="@+id/btnProfile"
         android:layout_width="40dp"
-        android:layout_height="40dp"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_margin="12dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:layout_marginTop="50dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/profile_title"
         android:padding="6dp"
@@ -27,20 +29,21 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:padding="16dp"
+            android:layout_marginTop="30dp"
             android:text="@string/my_citywalk_plan"
             android:textSize="24sp"
-            android:textStyle="bold"
-            android:padding="16dp"/>
+            android:textStyle="bold" />
 
         <TextView
             android:id="@+id/emptyView"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/no_trips_message"
             android:layout_gravity="center"
             android:layout_marginTop="100dp"
             android:gravity="center"
-            android:textSize="16sp"/>
+            android:text="@string/no_trips_message"
+            android:textSize="16sp" />
 
     </LinearLayout>
 

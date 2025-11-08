@@ -17,29 +17,29 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 检查用户是否已经完成过初次设置
+        // Check if the user has already completed the initial setup
         if (isOnboardingComplete()) {
             navigateToMainActivity();
-            return; // 直接跳转，不加载登录页布局
+            return; // Navigate directly, do not load the login page layout
         }
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        // 登录按钮的逻辑（目前简化为直接进入偏好设置）
+        // Logic for the login button (currently simplified to directly enter preference selection)
         binding.loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 在真实应用中，这里会进行用户名和密码的验证
+                // In a real application, username and password verification would be performed here
                 navigateToPreferenceSelection();
             }
         });
 
-        // 注册按钮的逻辑（目前也简化为进入偏好设置）
+        // Logic for the register button (also simplified to enter preference selection)
         binding.registerButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // 在真实应用中，这里会跳转到单独的注册页面
+                // In a real application, this would navigate to a separate registration page
                 navigateToPreferenceSelection();
             }
         });
@@ -47,14 +47,14 @@ public class LoginActivity extends AppCompatActivity {
 
     private boolean isOnboardingComplete() {
         SharedPreferences sharedPreferences = getSharedPreferences("CityGoPrefs", MODE_PRIVATE);
-        // 检查标志位，默认为 false
+        // Check the flag, default is false
         return sharedPreferences.getBoolean("is_onboarding_complete", false);
     }
 
     private void navigateToMainActivity() {
         Intent intent = new Intent(LoginActivity.this, MainActivity.class);
         startActivity(intent);
-        finish(); // 结束当前 Activity，防止用户返回
+        finish(); // Finish the current Activity to prevent the user from returning
     }
 
     private void navigateToPreferenceSelection() {

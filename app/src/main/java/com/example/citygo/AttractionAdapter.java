@@ -16,15 +16,14 @@ import java.util.List;
 
 public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.AttractionViewHolder> {
 
-    // 1. 定义一个更全面的监听器接口
     public interface OnAttractionActionsListener {
         void onSearchNearbyClick(String attractionName);
         void onAttractionRemoved(int position);
-        // 拖拽结束后，通知 Activity
+        // Notify the Activity after dragging ends
         void onAttractionsReordered();
     }
 
-    // 定义一个接口，让 Activity 可以命令 Adapter 开始拖拽
+    // Define an interface to allow the Activity to command the Adapter to start dragging
     public interface StartDragListener {
         void requestDrag(RecyclerView.ViewHolder viewHolder);
     }
@@ -53,13 +52,13 @@ public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.At
         notifyDataSetChanged();
     }
 
-    // 拖拽时调用的方法
+    // Method called when an item is moved
     public void onItemMove(int fromPosition, int toPosition) {
         Collections.swap(attractionNames, fromPosition, toPosition);
         notifyItemMoved(fromPosition, toPosition);
     }
 
-    // 删除时调用的方法
+    // Method called when an item is removed
     public void onItemRemove(int position) {
         attractionNames.remove(position);
         notifyItemRemoved(position);
@@ -78,27 +77,27 @@ public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.At
         String attractionName = attractionNames.get(position);
         holder.bind(attractionName);
 
-        // “搜周边”按钮的点击事件
+        // Click event for the "Search Nearby" button
         holder.binding.searchNearbyButton.setOnClickListener(v -> {
             if (actionsListener != null) {
                 actionsListener.onSearchNearbyClick(attractionName);
             }
         });
 
-        // “操作”图标的点击事件 (用于删除)
+        // Click event for the "handle" icon (for deletion)
         holder.binding.dragHandle.setOnClickListener(v -> {
             if (actionsListener != null) {
-                // 直接通知 Activity 显示删除确认
+                // Directly notify the Activity to show deletion confirmation
                 actionsListener.onAttractionRemoved(holder.getAdapterPosition());
             }
         });
 
-        // “操作”图标的触摸事件 (用于拖拽)
+        // Touch event for the "handle" icon (for dragging)
         holder.binding.dragHandle.setOnTouchListener((v, event) -> {
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 if (dragListener != null) {
-                    // 当用户按下图标时，请求 Activity 开始拖拽
-                     dragListener.requestDrag(holder);
+                    // When the user presses the icon, request the Activity to start dragging
+                    dragListener.requestDrag(holder);
                 }
             }
             return false;

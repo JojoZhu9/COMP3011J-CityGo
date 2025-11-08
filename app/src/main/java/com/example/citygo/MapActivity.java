@@ -90,11 +90,11 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     private int currentSearchIndex = 0;
     private boolean hasRetried = false;
 
-    // **新增：用于存储和管理推荐点的 Marker**
+    // **New: For storing and managing markers of recommended points**
     private List<Marker> nearbyPoiMarkers = new ArrayList<>();
-    // **新增：将 Marker 与其对应的 POI 数据关联起来**
+    // **New: Associate Markers with their corresponding POI data**
     private Map<Marker, PoiItem> markerPoiItemMap = new HashMap<>();
-    // **新增：记录当前选中的是第几天**
+    // **New: Record the currently selected day**
     private int currentSelectedDay = 1;
     private ItemTouchHelper itemTouchHelper;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
@@ -111,7 +111,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         if (aMap == null) {
             aMap = mapView.getMap();
             aMap.getUiSettings().setZoomControlsEnabled(true);
-            // **新增：设置点击监听器**
+            // **New: Set click listeners**
             aMap.setOnMarkerClickListener(this);
             aMap.setOnInfoWindowClickListener(this);
         }
@@ -145,10 +145,10 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
 
         LatLonPoint location = dayPoints.get(0);
-        // 和风天气的 location 参数格式是 "经度,纬度"
+        // HeWeather's location parameter format is "longitude,latitude"
         String locationStr = String.format(Locale.US, "%.2f,%.2f", location.getLongitude(), location.getLatitude());
 
-        // 计算目标日期
+        // Calculate the target date
         Calendar calendar = Calendar.getInstance();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
         try {
@@ -162,7 +162,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
         executorService.execute(() -> {
             try {
-                // 使用和风天气 3天预报 API
+                // Use HeWeather 3-day forecast API
                 URL url = new URL(String.format("https://devapi.qweather.com/v7/weather/3d?location=%s&key=%s", locationStr, HEWEATHER_API_KEY));
 
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -185,7 +185,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                 String textDay = getString(R.string.text_day);
                 String icon = "";
 
-                // 遍历返回的3天预报，找到与我们目标日期匹配的那一天
+                // Iterate through the returned 3-day forecast to find the one matching our target date
                 for (int i = 0; i < dailyForecasts.length(); i++) {
                     JSONObject dayForecast = dailyForecasts.getJSONObject(i);
                     String fxDate = dayForecast.getString("fxDate"); // "2025-10-18"
@@ -195,7 +195,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                         tempMax = dayForecast.getString("tempMax");
                         textDay = dayForecast.getString("textDay");
                         icon = dayForecast.getString("iconDay");
-                        break; // 找到后就跳出循环
+                        break; // Break the loop after finding it
                     }
                 }
 
@@ -220,7 +220,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         });
     }
 
-    // 实现移除地点的监听方法
+    // Implement the listener method for removing attractions
     @Override
     public void onAttractionRemoved(int position) {
         List<String> currentDayNames = dailyPlanNames.get(currentSelectedDay);
@@ -232,11 +232,11 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                 .setTitle(R.string.dialog_delete_title)
                 .setMessage(getString(R.string.dialog_delete_message, attractionToRemove))
                 .setPositiveButton(R.string.dialog_delete_confirm, (dialog, which) -> {
-                    // 从数据模型中移除
+                    // Remove from the data model
                     currentDayNames.remove(position);
                     dailyPlans.get(currentSelectedDay).remove(position);
 
-                    // 重新规划当天的最优路径
+                    // Re-plan the optimal route for the day
                     List<String> optimalDayRouteNames = findOptimalRoute(currentDayNames);
                     List<LatLonPoint> optimalDayPoints = new ArrayList<>();
                     for (String name : optimalDayRouteNames) {
@@ -245,20 +245,20 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                     dailyPlanNames.put(currentSelectedDay, optimalDayRouteNames);
                     dailyPlans.put(currentSelectedDay, optimalDayPoints);
 
-                    // 刷新地图和列表
+                    // Refresh the map and list
                     displayPlanForDay(currentSelectedDay);
                 })
                 .setNegativeButton(R.string.dialog_delete_cancel, null)
                 .show();
     }
 
-    // 实现拖拽结束的监听方法
+    // Implement the listener method for drag completion
     @Override
     public void onAttractionsReordered() {
-        // 当拖拽结束后，Adapter 里的列表顺序已经是新的了
+        // After dragging ends, the list order in the Adapter is already new
         List<String> newOrder = attractionAdapter.getAttractionNames();
 
-        // 更新我们的数据模型
+        // Update our data model
         dailyPlanNames.put(currentSelectedDay, new ArrayList<>(newOrder));
         List<LatLonPoint> newPointsOrder = new ArrayList<>();
         for (String name : newOrder) {
@@ -266,11 +266,11 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
         dailyPlans.put(currentSelectedDay, newPointsOrder);
 
-        // **直接用新的顺序重新规划路线并刷新，不再需要跑TSP**
+        // **Directly re-plan the route with the new order and refresh, no need to run TSP**
         displayPlanForDay(currentSelectedDay);
     }
 
-    // 实现开始拖拽的监听方法
+    // Implement the listener method for starting a drag
     @Override
     public void requestDrag(RecyclerView.ViewHolder viewHolder) {
         if (itemTouchHelper != null) {
@@ -278,63 +278,63 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
     }
 
-    // **新增：实现 Marker 点击事件**
+    // **New: Implement Marker click event**
     @Override
     public boolean onMarkerClick(Marker marker) {
-        // 检查这个被点击的 marker 是不是一个“推荐点”（绿色图钉）
+        // Check if this clicked marker is a "recommendation point" (green pin)
         if (markerPoiItemMap.containsKey(marker)) {
-            // 是推荐点，显示它的信息窗
+            // It's a recommendation point, show its info window
             marker.showInfoWindow();
         }
-        // 返回 false 表示我们没有完全消费这个事件，地图SDK可以继续执行默认行为（比如移动地图中心）
+        // Return false indicates we haven't fully consumed the event, SDK can continue default behavior (like moving map center)
         return false;
     }
 
-    // **新增：实现 InfoWindow 点击事件**
+    // **New: Implement InfoWindow click event**
     @Override
     public void onInfoWindowClick(Marker marker) {
-        // 再次确认这是一个“推荐点”
+        // Re-confirm this is a "recommendation point"
         if (markerPoiItemMap.containsKey(marker)) {
             PoiItem poiToAdd = markerPoiItemMap.get(marker);
             addPoiToCurrentDay(poiToAdd);
-            marker.hideInfoWindow(); // 添加后隐藏信息窗
+            marker.hideInfoWindow(); // Hide info window after adding
         }
     }
 
-    // **新增：将 POI 添加到当天行程的核心逻辑**
+    // **New: Core logic to add a POI to the current day's itinerary**
     private void addPoiToCurrentDay(PoiItem poi) {
         if (poi == null) return;
 
-        // 获取当前日的行程列表
+        // Get the current day's itinerary list
         List<String> currentDayNames = dailyPlanNames.get(currentSelectedDay);
         if (currentDayNames == null) {
             currentDayNames = new ArrayList<>();
         }
 
-        // 检查是否已添加
+        // Check if it's already added
         if (currentDayNames.contains(poi.getTitle())) {
             Toast.makeText(this, getString(R.string.toast_already_in_trip, poi.getTitle()), Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // 添加新的地点
+        // Add the new location
         currentDayNames.add(poi.getTitle());
         attractionPoints.put(poi.getTitle(), poi.getLatLonPoint());
 
-        // **关键一步：重新对当天的行程进行最优路径计算**
+        // **Key step: Recalculate the optimal route for the day's itinerary**
         List<String> optimalDayRouteNames = findOptimalRoute(currentDayNames);
         List<LatLonPoint> optimalDayPoints = new ArrayList<>();
         for (String name : optimalDayRouteNames) {
             optimalDayPoints.add(attractionPoints.get(name));
         }
 
-        // 更新数据模型
+        // Update the data model
         dailyPlanNames.put(currentSelectedDay, optimalDayRouteNames);
         dailyPlans.put(currentSelectedDay, optimalDayPoints);
 
         Toast.makeText(this, getString(R.string.toast_added_to_day, poi.getTitle(), currentSelectedDay), Toast.LENGTH_SHORT).show();
 
-        // **刷新整个当天的显示**
+        // **Refresh the entire display for the day**
         displayPlanForDay(currentSelectedDay);
     }
     private boolean shouldUseAMap() {
@@ -517,7 +517,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
     @Override
     public void onPoiSearched(PoiResult poiResult, int rCode) {
-        // Case 1: 周边搜索
+        // Case 1: Nearby search
         if (poiSearch.getBound() != null) {
             clearNearbyMarkers();
             if (rCode == AMapException.CODE_AMAP_SUCCESS) {
@@ -526,11 +526,11 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                         MarkerOptions markerOptions = new MarkerOptions()
                                 .position(new LatLng(poi.getLatLonPoint().getLatitude(), poi.getLatLonPoint().getLongitude()))
                                 .title(poi.getTitle())
-                                .snippet(getString(R.string.snippet_add_to_trip)) // InfoWindow 的内容
+                                .snippet(getString(R.string.snippet_add_to_trip)) // InfoWindow content
                                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                         Marker marker = aMap.addMarker(markerOptions);
                         nearbyPoiMarkers.add(marker);
-                        markerPoiItemMap.put(marker, poi); // **关联 Marker 和 POI 数据**
+                        markerPoiItemMap.put(marker, poi); // **Associate Marker with POI data**
                     }
                     Toast.makeText(this, getString(R.string.toast_marked_recommendations), Toast.LENGTH_SHORT).show();
                 } else {
@@ -540,7 +540,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             }
             poiSearch.setBound(null);
         }
-        // Case 2: 景点解析
+        // Case 2: Attraction parsing
         else {
             String currentAttractionName = attractionsToSearch.get(currentSearchIndex);
             if (rCode == AMapException.CODE_AMAP_SUCCESS
@@ -648,11 +648,11 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     private void setupRecyclerView() {
         attractionAdapter = new AttractionAdapter();
         attractionAdapter.setOnAttractionActionsListener(this);
-        attractionAdapter.setStartDragListener(this); // 设置拖拽监听
+        attractionAdapter.setStartDragListener(this); // Set drag listener
         binding.attractionsRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         binding.attractionsRecyclerView.setAdapter(attractionAdapter);
 
-        // **新增：初始化 ItemTouchHelper 并附加到 RecyclerView**
+        // **New: Initialize ItemTouchHelper and attach to RecyclerView**
         ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
             @Override
@@ -665,13 +665,13 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                // 我们不使用滑动删除
+                // We don't use swipe-to-delete
             }
 
             @Override
             public void clearView(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
                 super.clearView(recyclerView,viewHolder);
-                // 拖拽结束后，通知 Activity 更新路线
+                // After drag ends, notify Activity to update the route
                 onAttractionsReordered();
             }
         };
@@ -681,9 +681,9 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     }
 
     private void displayPlanForDay(int day) {
-        this.currentSelectedDay = day; // **记录当前天数**
+        this.currentSelectedDay = day; // **Record the current day**
         aMap.clear();
-        markerPoiItemMap.clear(); // 清空旧的关联
+        markerPoiItemMap.clear(); // Clear old associations
         nearbyPoiMarkers.clear();
 
         fetchWeatherForDay(day);

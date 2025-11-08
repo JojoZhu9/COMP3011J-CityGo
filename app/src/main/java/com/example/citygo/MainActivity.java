@@ -21,11 +21,9 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(MainActivity.this, ProfileActivity.class));
         });
 
-        // 设置浮动操作按钮的点击监听器
         binding.fabAddTrip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // 点击按钮后，启动 CreateTripActivity
                 Intent intent = new Intent(MainActivity.this, CreateTripActivity.class);
                 startActivity(intent);
             }
