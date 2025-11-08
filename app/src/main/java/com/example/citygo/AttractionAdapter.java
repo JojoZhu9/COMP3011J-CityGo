@@ -98,7 +98,7 @@ public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.At
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                 if (dragListener != null) {
                     // 当用户按下图标时，请求 Activity 开始拖拽
-                    dragListener.requestDrag(holder);
+                     dragListener.requestDrag(holder);
                 }
             }
             return false;

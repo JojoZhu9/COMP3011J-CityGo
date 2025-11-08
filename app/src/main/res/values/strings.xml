@@ -68,6 +68,9 @@
     <string name="button_search_nearby">搜周边</string>
     <string name="drag_or_delete">拖拽或删除</string>
 
+    <string name="day_label">第 %1$d 天</string>
+    <string name="date_format">M月d日</string>
+
 
 
 

@@ -3,6 +3,7 @@ package com.example.citygo;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
@@ -127,6 +128,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                 originalAttractionNames.add(name.trim());
             }
         }
+        Log.d(TAG, "Loaded attractions: " + originalAttractionNames);
         if (totalDays == 0 || originalAttractionNames.isEmpty()) {
             Toast.makeText(this, getString(R.string.toast_incomplete_trip), Toast.LENGTH_LONG).show();
             return;
@@ -335,6 +337,14 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         // **刷新整个当天的显示**
         displayPlanForDay(currentSelectedDay);
     }
+    private boolean shouldUseAMap() {
+        // Check device locale country
+        Locale locale = Locale.getDefault();
+        String country = locale.getCountry().toUpperCase();
+
+        // Use AMap if the phone language/region is set to China
+        return country.equals("CN");
+    }
 
     private void startSmartPlanning() {
         Toast.makeText(this, getString(R.string.toast_locating_city), Toast.LENGTH_SHORT).show();
@@ -345,16 +355,82 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             routeSearch.setRouteSearchListener(this);
             poiSearch = new PoiSearch(this, null);
             poiSearch.setOnPoiSearchListener(this);
-            geocodeCityAndMoveCamera();
-        } catch (AMapException e) { e.printStackTrace(); }
+
+            if (shouldUseAMap()) {
+                Log.d(TAG, "Detected Chinese region — using AMap geocoding...");
+                geocodeCityAndMoveCamera();
+            } else {
+                Log.d(TAG, "Detected non-Chinese region — using Google geocoding...");
+                geocodeCityWithGoogle(city);
+            }
+
+        } catch (AMapException e) {
+            e.printStackTrace();
+        }
     }
+
 
     private void geocodeCityAndMoveCamera() {
         Log.d(TAG, "Step 1: Geocoding city: " + city);
         GeocodeQuery query = new GeocodeQuery(city, city);
         geocodeSearch.getFromLocationNameAsyn(query);
     }
+
+    // for English version
+    private void geocodeCityWithGoogle(String cityName) {
+
+        String encodedCity = Uri.encode(cityName);
+        String urlStr = "https://maps.googleapis.com/maps/api/geocode/json?address="
+                + encodedCity + "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
+
+        executorService.execute(() -> {
+            try {
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    sb.append(line);
+                }
+                reader.close();
+
+                String response = sb.toString();
+                Log.e(TAG, "Google geocoding response: " + response);
+                JSONObject jsonObject = new JSONObject(response);
+
+                String status = jsonObject.getString("status");
+                if ("OK".equals(status)) {
+                    JSONObject location = jsonObject.getJSONArray("results")
+                            .getJSONObject(0)
+                            .getJSONObject("geometry")
+                            .getJSONObject("location");
+
+                    double lat = location.getDouble("lat");
+                    double lng = location.getDouble("lng");
+
+                    runOnUiThread(() -> moveCameraToLocation(lat, lng));
+                    runOnUiThread(this::poiSearchAllAttractions);
+
+                } else {
+                    runOnUiThread(() ->
+                            Toast.makeText(this, "Google Geocoding failed: " + status, Toast.LENGTH_LONG).show());
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Google Geocoding error", Toast.LENGTH_LONG).show());
+            }
+        });
+    }
+
     private void poiSearchAllAttractions() {
+
         Log.d(TAG, "Step 2: Starting POI search...");
         Toast.makeText(this, getString(R.string.toast_parsing_attraction), Toast.LENGTH_SHORT).show();
 
@@ -365,6 +441,8 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         poiSearchNextAttraction();
     }
 
+
+
     private void poiSearchNextAttraction() {
         if (currentSearchIndex >= attractionsToSearch.size()) {
             handleSearchPassFinished();
@@ -372,11 +450,16 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
 
         String attractionName = attractionsToSearch.get(currentSearchIndex);
-        PoiSearch.Query query = new PoiSearch.Query(attractionName, "", city);
-        query.setPageSize(1);
-        query.setPageNum(0);
-        poiSearch.setQuery(query);
-        poiSearch.searchPOIAsyn();
+        Log.d(TAG, "Searching attraction: " + attractionName + " (" + currentSearchIndex + "/" + attractionsToSearch.size() + ")");
+
+        // Add a short delay to prevent API overload
+        new android.os.Handler(getMainLooper()).postDelayed(() -> {
+            PoiSearch.Query query = new PoiSearch.Query(attractionName, "", city);
+            query.setPageSize(1);
+            query.setPageNum(0);
+            poiSearch.setQuery(query);
+            poiSearch.searchPOIAsyn();
+        }, 400); // delay 400ms before next search
     }
 
     private void handleSearchPassFinished() {
@@ -416,18 +499,19 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
     @Override
     public void onGeocodeSearched(GeocodeResult geocodeResult, int rCode) {
-        if (geocodeResult == null) {
-            Toast.makeText(this, getString(R.string.toast_locate_city_failed, city), Toast.LENGTH_LONG).show();
-            return;
-        }
+        if (rCode == AMapException.CODE_AMAP_SUCCESS &&
+                geocodeResult != null &&
+                geocodeResult.getGeocodeAddressList() != null &&
+                !geocodeResult.getGeocodeAddressList().isEmpty()) {
 
-        if (rCode == AMapException.CODE_AMAP_SUCCESS && geocodeResult.getGeocodeAddressList() != null && !geocodeResult.getGeocodeAddressList().isEmpty()) {
             GeocodeAddress address = geocodeResult.getGeocodeAddressList().get(0);
             LatLonPoint point = address.getLatLonPoint();
             moveCameraToLocation(point.getLatitude(), point.getLongitude());
             poiSearchAllAttractions();
+
         } else {
-            Toast.makeText(this, getString(R.string.toast_locate_city_failed, city), Toast.LENGTH_LONG).show();
+            // fallback to Google if AMap fails (for English names)
+            geocodeCityWithGoogle(city);
         }
     }
 
@@ -459,36 +543,107 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         // Case 2: 景点解析
         else {
             String currentAttractionName = attractionsToSearch.get(currentSearchIndex);
-            if (rCode == AMapException.CODE_AMAP_SUCCESS) {
-                if (poiResult != null && poiResult.getPois() != null && !poiResult.getPois().isEmpty()) {
-                    PoiItem poiItem = poiResult.getPois().get(0);
-                    attractionPoints.put(currentAttractionName, poiItem.getLatLonPoint());
-                }
+            if (rCode == AMapException.CODE_AMAP_SUCCESS
+                    && poiResult != null
+                    && poiResult.getPois() != null
+                    && !poiResult.getPois().isEmpty()) {
+
+                PoiItem poiItem = poiResult.getPois().get(0);
+                attractionPoints.put(currentAttractionName, poiItem.getLatLonPoint());
+                currentSearchIndex++;
+                poiSearchNextAttraction();
+
+            } else {
+                // remember to change all strings
+                Log.d(TAG, "AMap failed for " + currentAttractionName + ", trying Google...");
+                searchAttractionWithGoogle(currentAttractionName);
             }
-            currentSearchIndex++;
-            poiSearchNextAttraction();
+
         }
     }
 
+    private void searchNearbyWithGoogle(LatLonPoint centerPoint) {
+        executorService.execute(() -> {
+            try {
+                String locationStr = centerPoint.getLatitude() + "," + centerPoint.getLongitude();
+                String radius = "500"; // meters
+                String type = "restaurant"; // or "food"
+                String urlStr = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                        "location=" + locationStr +
+                        "&radius=" + radius +
+                        "&type=" + type +
+                        "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
+
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.connect();
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+
+                JSONObject jsonObject = new JSONObject(sb.toString());
+                JSONArray results = jsonObject.getJSONArray("results");
+
+                runOnUiThread(() -> {
+                    clearNearbyMarkers(); // remove old markers
+                    for (int i = 0; i < results.length(); i++) {
+                        try {
+                            JSONObject poi = results.getJSONObject(i);
+                            JSONObject loc = poi.getJSONObject("geometry").getJSONObject("location");
+                            double lat = loc.getDouble("lat");
+                            double lng = loc.getDouble("lng");
+                            String name = poi.getString("name");
+
+                            MarkerOptions markerOptions = new MarkerOptions()
+                                    .position(new LatLng(lat, lng))
+                                    .title(name)
+                                    .snippet(getString(R.string.snippet_add_to_trip))
+                                    .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
+                            Marker marker = aMap.addMarker(markerOptions);
+                            nearbyPoiMarkers.add(marker);
+                            // We don't have PoiItem for Google, optionally store name->latlon mapping
+                            markerPoiItemMap.put(marker, null);
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(this, "Google nearby search failed", Toast.LENGTH_SHORT).show());
+            }
+        });
+    }
+
+
     @Override
     public void onSearchNearbyClick(String attractionName) {
-        Toast.makeText(this, getString(R.string.toast_search_nearby, attractionName), Toast.LENGTH_SHORT).show();
         LatLonPoint centerPoint = attractionPoints.get(attractionName);
         if (centerPoint == null) {
             Toast.makeText(this, getString(R.string.toast_no_location_info), Toast.LENGTH_SHORT).show();
             return;
         }
 
+        if (shouldUseAMap()) {
+            PoiSearch.Query query = new PoiSearch.Query(getString(R.string.poi_search_query), "050000", city);
+            query.setPageSize(10);
+            query.setPageNum(0);
+            PoiSearch.SearchBound bound = new PoiSearch.SearchBound(centerPoint, 500);
 
-        PoiSearch.Query query = new PoiSearch.Query(getString(R.string.poi_search_query), "050000", city);
-        query.setPageSize(10);
-        query.setPageNum(0);
-        PoiSearch.SearchBound bound = new PoiSearch.SearchBound(centerPoint, 500);
-
-        poiSearch.setBound(bound);
-        poiSearch.setQuery(query);
-        poiSearch.searchPOIAsyn();
+            poiSearch.setBound(bound);
+            poiSearch.setQuery(query);
+            poiSearch.searchPOIAsyn();
+        } else {
+            searchNearbyWithGoogle(centerPoint);
+        }
     }
+
 
     private void setupRecyclerView() {
         attractionAdapter = new AttractionAdapter();
@@ -654,35 +809,60 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     }
 
     private void setupDaySwitcherUI() {
+        // get region
+        Locale locale = Locale.getDefault();
+
         binding.dayChipGroup.removeAllViews();
+
         Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
+
+        SimpleDateFormat sdf;
+
+        // TODO - fix it so that the date changes format based on region
+        if(locale.getLanguage().equals("zh")) {
+            sdf = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
+        } else {
+            sdf = new SimpleDateFormat("d-M-yyyy", Locale.getDefault());
+        }
+
         try {
             Date startDate = sdf.parse(startDateStr);
             calendar.setTime(startDate);
         } catch (ParseException e) {
             e.printStackTrace();
         }
-        SimpleDateFormat chipSdf = new SimpleDateFormat("M月d日", Locale.getDefault());
+
+        // Load format string from resources (auto-localized)
+        String datePattern = getString(R.string.date_format);
+        SimpleDateFormat chipSdf = new SimpleDateFormat(datePattern, Locale.getDefault());
+
         for (int i = 1; i <= totalDays; i++) {
             Chip chip = new Chip(this);
             String dateText = chipSdf.format(calendar.getTime());
-            chip.setText("第 " + i + " 天 (" + dateText + ")");
+
+            // Use string resource for day prefix
+            String dayPrefix = getString(R.string.day_label, i);
+
+            chip.setText(dayPrefix + " (" + dateText + ")");
             chip.setCheckable(true);
             chip.setId(i);
             binding.dayChipGroup.addView(chip);
+
             calendar.add(Calendar.DAY_OF_YEAR, 1);
         }
+
         binding.dayChipGroup.setOnCheckedStateChangeListener((group, checkedIds) -> {
             if (checkedIds.isEmpty()) return;
             int selectedDay = checkedIds.get(0);
-            this.currentSelectedDay = selectedDay; // **在切换时更新当前天数**
+            this.currentSelectedDay = selectedDay;
             displayPlanForDay(selectedDay);
         });
+
         if (binding.dayChipGroup.getChildCount() > 0) {
             binding.dayChipGroup.check(binding.dayChipGroup.getChildAt(0).getId());
         }
     }
+
 
     private BitmapDescriptor getCustomMarker(String text) {
         View view = getLayoutInflater().inflate(R.layout.marker_layout, null);
@@ -711,6 +891,56 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             aMap.addPolyline(new PolylineOptions().addAll(routePath).width(16f).color(Color.argb(255, 1, 159, 241)));
         }
     }
+
+    private void searchAttractionWithGoogle(String attractionName) {
+        Log.d(TAG, "searchAttractionWithGoogle START for: " + attractionName + " (index=" + currentSearchIndex + ")");
+        executorService.execute(() -> {
+            try {
+                String encodedName = Uri.encode(attractionName + " in " + city);
+                String urlStr = "https://maps.googleapis.com/maps/api/place/textsearch/json?query="
+                        + encodedName + "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
+
+                URL url = new URL(urlStr);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.connect();
+
+                InputStream inputStream = connection.getInputStream();
+                BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+                reader.close();
+
+                JSONObject jsonObject = new JSONObject(sb.toString());
+                String status = jsonObject.getString("status");
+
+                if ("OK".equals(status)) {
+                    JSONObject firstResult = jsonObject.getJSONArray("results").getJSONObject(0);
+                    JSONObject location = firstResult.getJSONObject("geometry").getJSONObject("location");
+                    double lat = location.getDouble("lat");
+                    double lng = location.getDouble("lng");
+
+                    LatLonPoint point = new LatLonPoint(lat, lng);
+                    attractionPoints.put(attractionName, point);
+
+                    Log.d(TAG, "Google found: " + attractionName + " -> " + lat + "," + lng);
+                } else {
+                    Log.w(TAG, "Google Places search failed for " + attractionName + ": " + status);
+                }
+
+            } catch (Exception e) {
+                Log.e(TAG, "Google Places exception for " + attractionName, e);
+            } finally {
+                runOnUiThread(() -> {
+                    currentSearchIndex++;
+                    Log.d(TAG, "Google search done for: " + attractionName + " (nextIndex=" + currentSearchIndex + ")");
+                    poiSearchNextAttraction();
+                });
+            }
+        });
+    }
+
 
     @Override
     public void onPoiItemSearched(PoiItem poiItem, int i) {}
