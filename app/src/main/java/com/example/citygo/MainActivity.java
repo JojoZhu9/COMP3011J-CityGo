@@ -16,6 +16,11 @@ public class MainActivity extends AppCompatActivity {
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        // Open Profile & Preferences
+        binding.btnProfile.setOnClickListener(v -> {
+            startActivity(new Intent(MainActivity.this, ProfileActivity.class));
+        });
+
         // 设置浮动操作按钮的点击监听器
         binding.fabAddTrip.setOnClickListener(new View.OnClickListener() {
             @Override

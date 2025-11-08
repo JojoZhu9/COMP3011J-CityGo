@@ -1,0 +1,11 @@
+<resources>
+    <string-array name="dietary_options">
+        <item>无特别要求</item>
+        <item>纯素</item>
+        <item>素食</item>
+        <item>无麸质</item>
+        <item>不含乳制品</item>
+        <item>清真</item>
+        <item>犹太洁食</item>
+    </string-array>
+</resources>

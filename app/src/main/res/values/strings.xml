@@ -67,9 +67,17 @@
     <string name="attraction_name">景点名称</string>
     <string name="button_search_nearby">搜周边</string>
     <string name="drag_or_delete">拖拽或删除</string>
+    <string name="profile_title">个人资料与偏好设置</string>
 
     <string name="day_label">第 %1$d 天</string>
     <string name="date_format">M月d日</string>
+    <string name="label_name">昵称</string>
+    <string name="label_email">邮箱（可选）</string>
+    <string name="label_home_city">常驻城市</string>
+    <string name="label_daily_budget">每日预算（例如 50.00）</string>
+    <string name="label_dietary">饮食偏好</string>
+    <string name="btn_save">保存</string>
+    <string name="toast_profile_saved">已保存个人资料</string>
 
 
 

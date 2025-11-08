@@ -66,9 +66,18 @@
     <string name="attraction_name">Attraction Name</string>
     <string name="button_search_nearby">Search Nearby</string>
     <string name="drag_or_delete">Drag or delete</string>
+    <string name="profile_title">Profile &amp; Preferences</string>
+
 
     <string name="day_label">Day %1$d</string>
     <string name="date_format">MMM d</string>
+    <string name="label_name">Display name</string>
+    <string name="label_email">Email (optional)</string>
+    <string name="label_home_city">Home city</string>
+    <string name="label_daily_budget">Daily budget (e.g. 50.00)</string>
+    <string name="label_dietary">Dietary preferences</string>
+    <string name="btn_save">Save</string>
+    <string name="toast_profile_saved">Profile saved</string>
 
 
 
