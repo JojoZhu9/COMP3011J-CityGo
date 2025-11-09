@@ -293,13 +293,46 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     // **New: Implement InfoWindow click event**
     @Override
     public void onInfoWindowClick(Marker marker) {
-        // Re-confirm this is a "recommendation point"
         if (markerPoiItemMap.containsKey(marker)) {
             PoiItem poiToAdd = markerPoiItemMap.get(marker);
-            addPoiToCurrentDay(poiToAdd);
-            marker.hideInfoWindow(); // Hide info window after adding
+
+            if (poiToAdd != null) {
+                addPoiToCurrentDay(poiToAdd);
+            } else {
+                LatLng position = marker.getPosition();
+                String title = marker.getTitle();
+                LatLonPoint latLonPoint = new LatLonPoint(position.latitude, position.longitude);
+
+                List<String> currentDayNames = dailyPlanNames.get(currentSelectedDay);
+                if (currentDayNames == null) {
+                    currentDayNames = new ArrayList<>();
+                }
+
+                if (currentDayNames.contains(title)) {
+                    Toast.makeText(this, getString(R.string.toast_already_in_trip, title), Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                currentDayNames.add(title);
+                attractionPoints.put(title, latLonPoint);
+
+                List<String> optimalDayRouteNames = findOptimalRoute(currentDayNames);
+                List<LatLonPoint> optimalDayPoints = new ArrayList<>();
+                for (String name : optimalDayRouteNames) {
+                    optimalDayPoints.add(attractionPoints.get(name));
+                }
+
+                dailyPlanNames.put(currentSelectedDay, optimalDayRouteNames);
+                dailyPlans.put(currentSelectedDay, optimalDayPoints);
+
+                Toast.makeText(this, getString(R.string.toast_added_to_day, title, currentSelectedDay), Toast.LENGTH_SHORT).show();
+                displayPlanForDay(currentSelectedDay);
+            }
+
+            marker.hideInfoWindow();
         }
     }
+
 
     // **New: Core logic to add a POI to the current day's itinerary**
     private void addPoiToCurrentDay(PoiItem poi) {
@@ -357,10 +390,10 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             poiSearch.setOnPoiSearchListener(this);
 
             if (shouldUseAMap()) {
-                Log.d(TAG, "Detected Chinese region — using AMap geocoding...");
+                //Log.d(TAG, "using AMap geocoding");
                 geocodeCityAndMoveCamera();
             } else {
-                Log.d(TAG, "Detected non-Chinese region — using Google geocoding...");
+                //Log.d(TAG, "using Google geocoding");
                 geocodeCityWithGoogle(city);
             }
 
@@ -381,7 +414,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
         String encodedCity = Uri.encode(cityName);
         String urlStr = "https://maps.googleapis.com/maps/api/geocode/json?address="
-                + encodedCity + "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
+                        + encodedCity + "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
 
         executorService.execute(() -> {
             try {
@@ -441,8 +474,6 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         poiSearchNextAttraction();
     }
 
-
-
     private void poiSearchNextAttraction() {
         if (currentSearchIndex >= attractionsToSearch.size()) {
             handleSearchPassFinished();
@@ -499,8 +530,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
 
     @Override
     public void onGeocodeSearched(GeocodeResult geocodeResult, int rCode) {
-        if (rCode == AMapException.CODE_AMAP_SUCCESS &&
-                geocodeResult != null &&
+        if (rCode == AMapException.CODE_AMAP_SUCCESS && geocodeResult != null &&
                 geocodeResult.getGeocodeAddressList() != null &&
                 !geocodeResult.getGeocodeAddressList().isEmpty()) {
 
@@ -510,7 +540,7 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             poiSearchAllAttractions();
 
         } else {
-            // fallback to Google if AMap fails (for English names)
+            // fallback to Google if AMap fails (English names)
             geocodeCityWithGoogle(city);
         }
     }
@@ -569,10 +599,10 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                 String radius = "500"; // meters
                 String type = "restaurant"; // or "food"
                 String urlStr = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
-                        "location=" + locationStr +
-                        "&radius=" + radius +
-                        "&type=" + type +
-                        "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
+                                "location=" + locationStr +
+                                "&radius=" + radius +
+                                "&type=" + type +
+                                "&key=AIzaSyAiEbD5dYtwZETZg9MLAmKg1EVrcJzA3PA";
 
                 URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
@@ -605,7 +635,6 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                                     .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN));
                             Marker marker = aMap.addMarker(markerOptions);
                             nearbyPoiMarkers.add(marker);
-                            // We don't have PoiItem for Google, optionally store name->latlon mapping
                             markerPoiItemMap.put(marker, null);
 
                         } catch (Exception e) {
@@ -924,9 +953,9 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                     LatLonPoint point = new LatLonPoint(lat, lng);
                     attractionPoints.put(attractionName, point);
 
-                    Log.d(TAG, "Google found: " + attractionName + " -> " + lat + "," + lng);
+                    Log.d(TAG, "Google found: " + attractionName + lat + lng);
                 } else {
-                    Log.w(TAG, "Google Places search failed for " + attractionName + ": " + status);
+                    Log.w(TAG, "Google Places search failed for " + attractionName + status);
                 }
 
             } catch (Exception e) {

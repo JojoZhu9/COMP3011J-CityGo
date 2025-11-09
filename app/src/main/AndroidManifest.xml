@@ -40,8 +40,6 @@
 
         <service android:name="com.amap.api.location.APSService"/>
 
-        <activity android:name=".ProfileActivity" />
-
     </application>
 
     <uses-permission android:name="android.permission.INTERNET" />
