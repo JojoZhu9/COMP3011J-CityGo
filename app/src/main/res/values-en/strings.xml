@@ -30,7 +30,6 @@
     <string name="toast_search_nearby">Searching for restaurants near %1$s...</string>
     <string name="toast_no_location_info">Unable to get this attraction’s location</string>
     <string name="poi_search_query">restaurant|cafe</string>
-
     <string name="toast_select_at_least_one_tag">Please select at least one tag you are interested in</string>
     <string name="toast_preferences_saved">Preferences saved! Start your city adventure now!</string>
 
@@ -50,8 +49,7 @@
     </string-array>
 
     <string name="toast_fill_all_info">Please fill in all information, including the start date</string>
-
-    <string name="title_create_citywalk">Create a new CityWalk</string>
+    <string name="title_create_citywalk">Create A New CityWalk</string>
     <string name="hint_destination_city">Destination city (e.g., Beijing)</string>
     <string name="hint_attractions">Attractions to visit (comma-separated)</string>
     <string name="hint_days">Number of days</string>
@@ -62,13 +60,10 @@
     <string name="no_trips_message">You haven\'t created any trips yet.&#10;Tap the \'+\' button in the bottom right to start!</string>
     <string name="create_new_trip_description">Create New Trip</string>
     <string name="weather_example">Sunny 25°C</string>
-
     <string name="attraction_name">Attraction Name</string>
     <string name="button_search_nearby">Search Nearby</string>
     <string name="drag_or_delete">Drag or delete</string>
     <string name="profile_title">Profile &amp; Preferences</string>
-
-
     <string name="day_label">Day %1$d</string>
     <string name="date_format">MMM d</string>
     <string name="label_name">Display name</string>
@@ -78,6 +73,8 @@
     <string name="label_dietary">Dietary preferences</string>
     <string name="btn_save">Save</string>
     <string name="toast_profile_saved">Profile saved</string>
+    <string name="desc_back">Back</string>
+    <string name="button_ai_assist">✨ AI Trip Assistant</string>
 
 
 

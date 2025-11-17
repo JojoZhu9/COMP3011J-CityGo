@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -71,7 +72,6 @@ import java.util.concurrent.Executors;
 
 public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGeocodeSearchListener, RouteSearch.OnRouteSearchListener, PoiSearch.OnPoiSearchListener, AttractionAdapter.OnAttractionActionsListener, AMap.OnMarkerClickListener, AMap.OnInfoWindowClickListener, AttractionAdapter.StartDragListener {
     private static final String TAG = "SmartPlanDebug";
-    private static final String HEWEATHER_API_KEY = "8e2c8be628054145ac5d43fbdc4b38e3";
     private ActivityMapBinding binding;
     private MapView mapView;
     private AMap aMap;
@@ -98,6 +98,10 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     private int currentSelectedDay = 1;
     private ItemTouchHelper itemTouchHelper;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private DBService dbService;
+    private int currentTripId = -1;
+    private double dailyBudget = 0;
+    private Map<Marker, String> itineraryMarkerMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,16 +110,26 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         MapsInitializer.updatePrivacyAgree(this, true);
         binding = ActivityMapBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // 1. 初始化数据库服务和预算
+        dbService = new DBService(this);
+        UserPrefs prefs = new UserPrefs(this);
+        dailyBudget = prefs.getDailyBudgetCents() / 100.0;
+        if (dailyBudget <= 0) dailyBudget = 500; // 默认预算
+
+        // 2. 初始化地图
         mapView = binding.mapView;
         mapView.onCreate(savedInstanceState);
         if (aMap == null) {
             aMap = mapView.getMap();
             aMap.getUiSettings().setZoomControlsEnabled(true);
-            // **New: Set click listeners**
             aMap.setOnMarkerClickListener(this);
             aMap.setOnInfoWindowClickListener(this);
         }
+
         setupRecyclerView();
+
+        // 3. 获取 Intent 数据
         Intent intent = getIntent();
         city = intent.getStringExtra("EXTRA_CITY");
         String attractionsStr = intent.getStringExtra("EXTRA_ATTRACTIONS");
@@ -123,101 +137,179 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         startDateStr = intent.getStringExtra("EXTRA_START_DATE");
 
         originalAttractionNames = new ArrayList<>();
-        for (String name : attractionsStr.split("[,，]")) {
-            if (!name.trim().isEmpty()) {
-                originalAttractionNames.add(name.trim());
+        if (attractionsStr != null) {
+            for (String name : attractionsStr.split("[,，]")) {
+                if (!name.trim().isEmpty()) {
+                    originalAttractionNames.add(name.trim());
+                }
             }
         }
+
         Log.d(TAG, "Loaded attractions: " + originalAttractionNames);
+
+        // 4. 数据校验
         if (totalDays == 0 || originalAttractionNames.isEmpty()) {
             Toast.makeText(this, getString(R.string.toast_incomplete_trip), Toast.LENGTH_LONG).show();
             return;
         }
 
+        // ============================================================
+        // 【新增整合部分开始】
+        // ============================================================
+
+        // 5. 异步获取行程ID (必须在获取到 city 和 startDateStr 之后调用)
+        // 只有拿到 tripId，才能进行记账操作
+        dbService.getTrip(city, startDateStr, trip -> {
+            if (trip != null) {
+                currentTripId = trip.tripId;
+                // 获取到ID后，刷新第一天的预算显示
+                updateBudgetUI(1);
+            }
+        });
+
+        // 6. 绑定“记账”按钮点击事件
+        binding.btnAddExpense.setOnClickListener(v -> showAddExpenseDialog());
+
+        // 7. 绑定“返回”按钮点击事件
+        binding.btnBack.setOnClickListener(v -> finish());
+
+        // ============================================================
+        // 【新增整合部分结束】
+        // ============================================================
+
         startSmartPlanning();
     }
+    // 替换原有的 fetchWeatherForDay 方法
     private void fetchWeatherForDay(int day) {
         List<LatLonPoint> dayPoints = dailyPlans.get(day);
         if (dayPoints == null || dayPoints.isEmpty()) {
-            binding.weatherText.setText(getString(R.string.weather_no_info));
+            binding.weatherText.setText(getString(R.string.weather_no_info)); // 确保 strings.xml 中有这个字符串，或者直接写 "无行程信息"
             binding.weatherIcon.setImageResource(0);
             return;
         }
 
         LatLonPoint location = dayPoints.get(0);
-        // HeWeather's location parameter format is "longitude,latitude"
-        String locationStr = String.format(Locale.US, "%.2f,%.2f", location.getLongitude(), location.getLatitude());
+        double lat = location.getLatitude();
+        double lon = location.getLongitude();
 
-        // Calculate the target date
+        // 计算目标日期 (Open-Meteo 需要 yyyy-MM-dd 格式)
         Calendar calendar = Calendar.getInstance();
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
+        SimpleDateFormat sdfInput = new SimpleDateFormat("yyyy-M-d", Locale.getDefault()); // 解析 CreateTrip 传来的格式
+        SimpleDateFormat sdfApi = new SimpleDateFormat("yyyy-MM-dd", Locale.US); // API 需要的格式
+
+        String targetDateStr = "";
         try {
-            Date startDate = sdf.parse(startDateStr);
+            Date startDate = sdfInput.parse(startDateStr);
             calendar.setTime(startDate);
             calendar.add(Calendar.DAY_OF_YEAR, day - 1);
+            targetDateStr = sdfApi.format(calendar.getTime());
         } catch (ParseException e) {
             e.printStackTrace();
+            // 如果解析失败，默认用今天
+            targetDateStr = sdfApi.format(new Date());
         }
-        String targetDateStr = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
+
+        final String apiDate = targetDateStr;
 
         executorService.execute(() -> {
             try {
-                // Use HeWeather 3-day forecast API
-                URL url = new URL(String.format("https://devapi.qweather.com/v7/weather/3d?location=%s&key=%s", locationStr, HEWEATHER_API_KEY));
+                // Open-Meteo API: 获取指定日期的 天气代码、最高温、最低温
+                // timezone=auto 会自动根据经纬度判断时区
+                String urlStr = String.format(Locale.US,
+                        "https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=%s&end_date=%s",
+                        lat, lon, apiDate, apiDate);
 
+                URL url = new URL(urlStr);
                 HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(5000);
                 connection.connect();
+
                 InputStream stream = connection.getInputStream();
                 BufferedReader reader = new BufferedReader(new InputStreamReader(stream));
                 StringBuilder buffer = new StringBuilder();
                 String line;
                 while ((line = reader.readLine()) != null) {
-                    buffer.append(line).append("\n");
+                    buffer.append(line);
                 }
                 String jsonResponse = buffer.toString();
-                Log.d(TAG, "HeWeather Response: " + jsonResponse);
+                Log.d(TAG, "Open-Meteo Response: " + jsonResponse);
 
                 JSONObject jsonObject = new JSONObject(jsonResponse);
-                JSONArray dailyForecasts = jsonObject.getJSONArray("daily");
 
-                String tempMin = "--";
-                String tempMax = "--";
-                String textDay = getString(R.string.text_day);
-                String icon = "";
+                // Open-Meteo 的 daily 数据是数组，因为我们只查了一天，所以取 index 0
+                JSONObject daily = jsonObject.getJSONObject("daily");
+                int code = daily.getJSONArray("weathercode").getInt(0);
+                double maxTemp = daily.getJSONArray("temperature_2m_max").getDouble(0);
+                double minTemp = daily.getJSONArray("temperature_2m_min").getDouble(0);
 
-                // Iterate through the returned 3-day forecast to find the one matching our target date
-                for (int i = 0; i < dailyForecasts.length(); i++) {
-                    JSONObject dayForecast = dailyForecasts.getJSONObject(i);
-                    String fxDate = dayForecast.getString("fxDate"); // "2025-10-18"
+                // 获取对应的图标资源ID和文字描述
+                int iconResId = getWeatherIconResource(code);
+                String weatherDesc = getWeatherDescription(code);
 
-                    if (fxDate.equals(targetDateStr)) {
-                        tempMin = dayForecast.getString("tempMin");
-                        tempMax = dayForecast.getString("tempMax");
-                        textDay = dayForecast.getString("textDay");
-                        icon = dayForecast.getString("iconDay");
-                        break; // Break the loop after finding it
-                    }
-                }
-
-                final String weatherInfo = textDay + "  " + tempMin + "°C / " + tempMax + "°C";
-                final String iconName = "ic_qweather_" + icon;
+                final String weatherInfo = String.format(Locale.getDefault(), "%s  %.0f°C / %.0f°C", weatherDesc, minTemp, maxTemp);
 
                 runOnUiThread(() -> {
                     binding.weatherText.setText(weatherInfo);
-                    int iconId = getResources().getIdentifier(iconName, "drawable", getPackageName());
-                    if (iconId != 0) {
-                        binding.weatherIcon.setImageResource(iconId);
+                    if (iconResId != 0) {
+                        binding.weatherIcon.setImageResource(iconResId);
                     } else {
                         binding.weatherIcon.setImageResource(0);
-                        Log.w(TAG, "Weather icon not found: " + iconName);
                     }
                 });
 
             } catch (Exception e) {
                 e.printStackTrace();
-                runOnUiThread(() -> binding.weatherText.setText(getString(R.string.toast_weather_failed)));
+                Log.e(TAG, "Weather fetch error", e);
+                runOnUiThread(() -> binding.weatherText.setText("天气暂不可用"));
             }
         });
+    }
+
+    /**
+     * 将 WMO Weather Code 转换为和风天气的图标资源 ID
+     * 代码参考: https://open-meteo.com/en/docs
+     */
+    private int getWeatherIconResource(int wmoCode) {
+        String iconName;
+
+        if (wmoCode == 0) {
+            iconName = "ic_qweather_100"; // 晴
+        } else if (wmoCode >= 1 && wmoCode <= 3) {
+            iconName = "ic_qweather_101"; // 多云
+        } else if (wmoCode == 45 || wmoCode == 48) {
+            iconName = "ic_qweather_501"; // 雾 (如果没有501，可以用104阴)
+        } else if (wmoCode >= 51 && wmoCode <= 67) {
+            iconName = "ic_qweather_305"; // 雨
+        } else if (wmoCode >= 71 && wmoCode <= 77) {
+            iconName = "ic_qweather_400"; // 雪
+        } else if (wmoCode >= 80 && wmoCode <= 82) {
+            iconName = "ic_qweather_305"; // 阵雨
+        } else if (wmoCode >= 95) {
+            iconName = "ic_qweather_302"; // 雷雨
+        } else {
+            iconName = "ic_qweather_100"; // 默认
+        }
+
+        // 动态获取资源ID，避免硬编码 R.drawable.xxx 导致找不到报错
+        return getResources().getIdentifier(iconName, "drawable", getPackageName());
+    }
+
+    /**
+     * 获取天气文字描述
+     */
+    /**
+     * Get weather description based on WMO Weather Code (English)
+     */
+    private String getWeatherDescription(int wmoCode) {
+        if (wmoCode == 0) return "Clear sky";
+        if (wmoCode >= 1 && wmoCode <= 3) return "Cloudy";
+        if (wmoCode == 45 || wmoCode == 48) return "Fog";
+        if (wmoCode >= 51 && wmoCode <= 67) return "Rain";
+        if (wmoCode >= 71 && wmoCode <= 77) return "Snow";
+        if (wmoCode >= 80 && wmoCode <= 82) return "Showers";
+        if (wmoCode >= 95) return "Thunderstorm";
+        return "Unknown";
     }
 
     // Implement the listener method for removing attractions
@@ -278,27 +370,131 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
     }
 
-    // **New: Implement Marker click event**
+    // 1. 修改 onMarkerClick：点击标记不再显示气泡，而是显示详情弹窗
     @Override
     public boolean onMarkerClick(Marker marker) {
-        // Check if this clicked marker is a "recommendation point" (green pin)
+        // 情况 1: 点击了“搜周边”的推荐点（绿色）
         if (markerPoiItemMap.containsKey(marker)) {
-            // It's a recommendation point, show its info window
-            marker.showInfoWindow();
+            PoiItem poi = markerPoiItemMap.get(marker);
+            // 最后一个参数 false 表示“它还不在行程中”
+            showPlaceDetailDialog(poi.getTitle(), poi.getTypeDes(), marker, false);
+            return true;
         }
-        // Return false indicates we haven't fully consumed the event, SDK can continue default behavior (like moving map center)
+
+        // 情况 2: 【新增】点击了“已有行程”的景点（蓝色数字）
+        if (itineraryMarkerMap.containsKey(marker)) {
+            String attractionName = itineraryMarkerMap.get(marker);
+            // 最后一个参数 true 表示“它已经在行程中了”（为了隐藏添加按钮）
+            showPlaceDetailDialog(attractionName, "Attraction", marker, true);
+            return true;
+        }
+
         return false;
     }
 
-    // **New: Implement InfoWindow click event**
+    // 2. 我们可以移除 onInfoWindowClick 了，因为不再使用它
     @Override
     public void onInfoWindowClick(Marker marker) {
-        // Re-confirm this is a "recommendation point"
-        if (markerPoiItemMap.containsKey(marker)) {
-            PoiItem poiToAdd = markerPoiItemMap.get(marker);
-            addPoiToCurrentDay(poiToAdd);
-            marker.hideInfoWindow(); // Hide info window after adding
+        // Deprecated
+    }
+
+    // 3. 【新增】显示详情弹窗的核心方法
+    // 【修改】增加 boolean isAlreadyInItinerary 参数
+    private void showPlaceDetailDialog(String placeName, String placeType, Marker marker, boolean isAlreadyInItinerary) {
+        com.google.android.material.bottomsheet.BottomSheetDialog dialog =
+                new com.google.android.material.bottomsheet.BottomSheetDialog(this);
+
+        View view = getLayoutInflater().inflate(R.layout.dialog_place_detail, null);
+        dialog.setContentView(view);
+
+        TextView title = view.findViewById(R.id.detailTitle);
+        TextView type = view.findViewById(R.id.detailType);
+        TextView ratingText = view.findViewById(R.id.detailRatingText);
+        TextView reviewText = view.findViewById(R.id.detailReview);
+        android.widget.RatingBar ratingBar = view.findViewById(R.id.detailRatingBar);
+        View btnAdd = view.findViewById(R.id.btnAddFromDetail);
+
+        title.setText(placeName);
+        type.setText(placeType);
+
+        // 【新增】根据是否已在行程中，控制按钮显示
+        if (isAlreadyInItinerary) {
+            btnAdd.setVisibility(View.GONE); // 已经在行程里了，隐藏按钮
+        } else {
+            btnAdd.setVisibility(View.VISIBLE);
+            btnAdd.setOnClickListener(v -> {
+                if (markerPoiItemMap.containsKey(marker)) {
+                    PoiItem poiToAdd = markerPoiItemMap.get(marker);
+                    addPoiToCurrentDay(poiToAdd);
+                }
+                dialog.dismiss();
+            });
         }
+
+        dialog.show();
+
+        // 调用 AI 获取评价 (确保这部分代码里的 Prompt 是英文的)
+        fetchPlaceReviewFromAI(placeName, ratingText, ratingBar, reviewText);
+    }
+
+    // 5. 【新增】调用 DeepSeek AI 获取评价
+    private void fetchPlaceReviewFromAI(String placeName, TextView ratingText, android.widget.RatingBar ratingBar, TextView reviewText) {
+        String apiKey = "sk-d51b987e1be546148868cc1fc988d52e";
+        executorService.execute(() -> {
+            try {
+                // 构造 Prompt：要求返回 JSON，包含 rating (0.0-5.0) 和 summary
+                String prompt = "Provide a JSON object with 'rating' (float 3.0-5.0) and 'summary' (English, max 50 words) for the place: " + placeName + " in " + city + ". Based on general public opinion. Do not use markdown.";
+
+                JSONObject jsonBody = new JSONObject();
+                jsonBody.put("model", "deepseek-chat");
+                jsonBody.put("temperature", 0.7);
+
+                JSONArray messages = new JSONArray();
+                messages.put(new JSONObject().put("role", "user").put("content", prompt));
+                jsonBody.put("messages", messages);
+                jsonBody.put("response_format", new JSONObject().put("type", "json_object"));
+
+                URL url = new URL("https://api.deepseek.com/chat/completions");
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Authorization", "Bearer " + apiKey); // 使用真实的 Key
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
+
+                try (java.io.OutputStream os = conn.getOutputStream()) {
+                    os.write(jsonBody.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                }
+
+                if (conn.getResponseCode() == 200) {
+                    java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(conn.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = br.readLine()) != null) response.append(line);
+
+                    JSONObject responseJson = new JSONObject(response.toString());
+                    String content = responseJson.getJSONArray("choices").getJSONObject(0).getJSONObject("message").getString("content");
+
+                    // 简单的 JSON 清理
+                    if(content.contains("```json")) content = content.replace("```json", "").replace("```", "");
+
+                    JSONObject result = new JSONObject(content);
+                    double rating = result.optDouble("rating", 4.5);
+                    String summary = result.optString("summary", "A popular place worth visiting.");
+
+                    // 更新 UI
+                    runOnUiThread(() -> {
+                        ratingBar.setRating((float) rating);
+                        ratingText.setText(String.valueOf(rating));
+                        reviewText.setText(summary);
+                    });
+                } else {
+                    runOnUiThread(() -> reviewText.setText("Review data unavailable."));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> reviewText.setText("Failed to load reviews."));
+            }
+        });
     }
 
     // **New: Core logic to add a POI to the current day's itinerary**
@@ -356,19 +552,15 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             poiSearch = new PoiSearch(this, null);
             poiSearch.setOnPoiSearchListener(this);
 
-            if (shouldUseAMap()) {
-                Log.d(TAG, "Detected Chinese region — using AMap geocoding...");
-                geocodeCityAndMoveCamera();
-            } else {
-                Log.d(TAG, "Detected non-Chinese region — using Google geocoding...");
-                geocodeCityWithGoogle(city);
-            }
+            // 【修改点】不再判断语言，始终优先尝试高德
+            // 如果高德失败，onGeocodeSearched 回调里会自动触发 geocodeCityWithGoogle
+            Log.d(TAG, "Starting with AMap priority...");
+            geocodeCityAndMoveCamera();
 
         } catch (AMapException e) {
             e.printStackTrace();
         }
     }
-
 
     private void geocodeCityAndMoveCamera() {
         Log.d(TAG, "Step 1: Geocoding city: " + city);
@@ -630,18 +822,20 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
             return;
         }
 
-        if (shouldUseAMap()) {
-            PoiSearch.Query query = new PoiSearch.Query(getString(R.string.poi_search_query), "050000", city);
-            query.setPageSize(10);
-            query.setPageNum(0);
-            PoiSearch.SearchBound bound = new PoiSearch.SearchBound(centerPoint, 500);
+        // 【修改点】始终优先使用高德搜索周边
+        // 高德的周边搜索在国内数据更丰富，且响应更快
+        PoiSearch.Query query = new PoiSearch.Query(getString(R.string.poi_search_query), "050000", city);
+        query.setPageSize(10);
+        query.setPageNum(0);
+        PoiSearch.SearchBound bound = new PoiSearch.SearchBound(centerPoint, 500);
 
-            poiSearch.setBound(bound);
-            poiSearch.setQuery(query);
-            poiSearch.searchPOIAsyn();
-        } else {
-            searchNearbyWithGoogle(centerPoint);
-        }
+        poiSearch.setBound(bound);
+        poiSearch.setQuery(query);
+        poiSearch.searchPOIAsyn();
+
+        // 注意：目前的 onPoiSearched 回调中还没有为“搜周边”写 Google 的兜底逻辑
+        // 如果高德搜不到，目前会显示“附近没有找到”。
+        // 如果需要，可以在 onPoiSearched 的 Case 1 (rCode != SUCCESS) 中调用 searchNearbyWithGoogle(centerPoint)
     }
 
 
@@ -681,12 +875,16 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
     }
 
     private void displayPlanForDay(int day) {
-        this.currentSelectedDay = day; // **Record the current day**
+        this.currentSelectedDay = day;
         aMap.clear();
-        markerPoiItemMap.clear(); // Clear old associations
+        markerPoiItemMap.clear();
         nearbyPoiMarkers.clear();
 
+        // 【新增】每次刷新地图时，清空旧的行程点记录
+        itineraryMarkerMap.clear();
+
         fetchWeatherForDay(day);
+        updateBudgetUI(day);
 
         List<LatLonPoint> dayPoints = dailyPlans.get(day);
         List<String> dayNames = dailyPlanNames.get(day);
@@ -699,7 +897,10 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
                     .position(new LatLng(dayPoints.get(i).getLatitude(), dayPoints.get(i).getLongitude()))
                     .title(dayNames.get(i))
                     .icon(getCustomMarker(String.valueOf(i + 1)));
-            aMap.addMarker(markerOptions);
+
+            // 【修改】获取 Marker 对象，并存入 Map，key是Marker，value是景点名称
+            Marker marker = aMap.addMarker(markerOptions);
+            itineraryMarkerMap.put(marker, dayNames.get(i));
         }
         if (dayPoints.size() >= 2) {
             LatLonPoint from = dayPoints.get(0);
@@ -711,6 +912,127 @@ public class MapActivity extends AppCompatActivity implements GeocodeSearch.OnGe
         }
         aMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                 new LatLng(dayPoints.get(0).getLatitude(), dayPoints.get(0).getLongitude()), 12));
+    }
+
+    // 【新增方法 1】更新预算UI
+    private void updateBudgetUI(int day) {
+        if (currentTripId == -1) return;
+
+        String currentDateStr = getTargetDateStr(day);
+
+        binding.progressBarBudget.setOnClickListener(v -> showExpenseListDialog(currentDateStr));
+
+        dbService.getDailyTotal(currentTripId, currentDateStr, total -> {
+            runOnUiThread(() -> {
+                binding.textExpense.setText(String.format(Locale.US, "%.2f / %.0f", total, dailyBudget));
+
+                int progress = (int) ((total / dailyBudget) * 100);
+                binding.progressBarBudget.setProgress(Math.min(progress, 100));
+
+                // 超支变红
+                if (total > dailyBudget) {
+                    binding.progressBarBudget.getProgressDrawable().setColorFilter(Color.RED, android.graphics.PorterDuff.Mode.SRC_IN);
+                } else {
+                    binding.progressBarBudget.getProgressDrawable().clearColorFilter();
+                }
+            });
+        });
+    }
+
+    private void showExpenseListDialog(String dateStr) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Expenses for " + dateStr);
+
+        // 使用 RecyclerView 显示列表
+        RecyclerView rv = new RecyclerView(this);
+        rv.setLayoutManager(new LinearLayoutManager(this));
+        ExpenseAdapter adapter = new ExpenseAdapter();
+        rv.setAdapter(adapter);
+
+        // 设置边距
+        int padding = 32;
+        rv.setPadding(padding, padding, padding, padding);
+
+        builder.setView(rv);
+        builder.setPositiveButton("Close", null);
+        AlertDialog dialog = builder.show();
+
+        // 加载数据
+        dbService.getDailyExpensesList(currentTripId, dateStr, list -> {
+            if (list.isEmpty()) {
+                Toast.makeText(this, "No expenses yet.", Toast.LENGTH_SHORT).show();
+            } else {
+                adapter.setExpenses(list);
+            }
+        });
+
+        // 处理删除
+        adapter.setOnExpenseDeleteListener(expense -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Confirm Delete")
+                    .setMessage("Delete this record?")
+                    .setPositiveButton("Yes", (d, w) -> {
+                        dbService.deleteExpense(expense);
+                        // 刷新列表和外部UI
+                        dbService.getDailyExpensesList(currentTripId, dateStr, adapter::setExpenses);
+                        updateBudgetUI(currentSelectedDay);
+                        Toast.makeText(this, "Deleted", Toast.LENGTH_SHORT).show();
+                    })
+                    .setNegativeButton("No", null)
+                    .show();
+        });
+    }
+
+    // 【新增方法 2】显示记账弹窗
+    private void showAddExpenseDialog() {
+        if (currentTripId == -1) {
+            Toast.makeText(this, "Loading trip info...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_add_expense, null);
+        builder.setView(view);
+
+        com.google.android.material.textfield.TextInputEditText inputAmount = view.findViewById(R.id.inputAmount);
+        com.google.android.material.chip.ChipGroup chipGroup = view.findViewById(R.id.chipGroupCategory);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String amountStr = inputAmount.getText().toString();
+            if (amountStr.isEmpty()) return;
+
+            double amount = Double.parseDouble(amountStr);
+
+            String category = "Other";
+            int checkedId = chipGroup.getCheckedChipId();
+            if (checkedId != -1) {
+                com.google.android.material.chip.Chip chip = view.findViewById(checkedId);
+                category = chip.getText().toString();
+            }
+
+            String dateStr = getTargetDateStr(currentSelectedDay);
+            dbService.addExpense(currentTripId, category, amount, dateStr);
+
+            Toast.makeText(this, "Expense Saved!", Toast.LENGTH_SHORT).show();
+            updateBudgetUI(currentSelectedDay);
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    // 【新增方法 3】计算日期字符串
+    private String getTargetDateStr(int day) {
+        Calendar calendar = Calendar.getInstance();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-M-d", Locale.getDefault());
+        try {
+            Date startDate = sdf.parse(startDateStr);
+            calendar.setTime(startDate);
+            calendar.add(Calendar.DAY_OF_YEAR, day - 1);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.getTime());
     }
 
     private void clearNearbyMarkers(){

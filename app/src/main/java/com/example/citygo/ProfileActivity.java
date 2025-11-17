@@ -9,16 +9,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.citygo.databinding.ActivityProfileBinding;
 import com.google.android.material.chip.Chip;
 
+import java.util.Set;
+
 public class ProfileActivity extends AppCompatActivity {
 
     private ActivityProfileBinding binding;
     private String[] DIETARY_OPTIONS;
+    private DBService dbService; // 引入数据库服务
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         binding = ActivityProfileBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
+
+        // 初始化数据库服务
+        dbService = new DBService(this);
 
         DIETARY_OPTIONS = getResources().getStringArray(R.array.dietary_options);
         inflateDietaryChips();
@@ -68,12 +74,20 @@ public class ProfileActivity extends AppCompatActivity {
             catch (Exception ignored) { cents = 0; }
         }
 
+        // 1. 保存到本地 SharedPreferences (保持原有逻辑)
         UserPrefs prefs = new UserPrefs(this);
         prefs.setName(name);
         prefs.setEmail(email);
         prefs.setHomeCity(city);
         prefs.setDailyBudgetCents(Math.max(0, cents));
-        prefs.setDietary(ChipUtils.selectedTexts(binding.chipGroupDietary));
+
+        Set<String> dietarySet = ChipUtils.selectedTexts(binding.chipGroupDietary);
+        prefs.setDietary(dietarySet);
+
+        // 2. 【新增】同时上传到 MySQL 数据库
+        // 将 Set 转换为逗号分隔的字符串方便存储
+        String dietaryString = TextUtils.join(",", dietarySet);
+        dbService.saveUserProfile(name, email, city, cents, dietaryString);
     }
 
     private static String safe(CharSequence cs) {

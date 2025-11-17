@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="12dp"
+    android:background="?android:attr/selectableItemBackground">
+
+    <TextView
+        android:id="@+id/textCategoryIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/bottom_sheet_background"
+        android:backgroundTint="#E0E0E0"
+        android:gravity="center"
+        android:text="F"
+        android:textStyle="bold"
+        android:textColor="#673AB7"/>
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="12dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/textCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Food"
+            android:textSize="16sp"
+            android:textColor="@android:color/black"/>
+
+        <TextView
+            android:id="@+id/textDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2025-10-18"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"/>
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/textAmount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="- 50.00"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#E53935"/>
+
+    <ImageView
+        android:id="@+id/btnDeleteExpense"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="16dp"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        app:tint="@android:color/darker_gray"/>
+
+</LinearLayout>

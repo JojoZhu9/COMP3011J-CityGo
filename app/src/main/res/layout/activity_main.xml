@@ -7,43 +7,50 @@
     android:layout_height="match_parent"
     tools:context=".MainActivity">
 
-    <!-- Top-right profile button -->
-    <ImageButton
-        android:id="@+id/btnProfile"
-        android:layout_width="40dp"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginTop="50dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/profile_title"
-        android:padding="6dp"
-        android:src="@drawable/ic_person_24" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:padding="16dp">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="16dp"
-            android:layout_marginTop="30dp"
-            android:text="@string/my_citywalk_plan"
-            android:textSize="24sp"
-            android:textStyle="bold" />
+            android:layout_marginBottom="16dp"
+            android:layout_marginTop="32dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="My CityWalk Plans"
+                android:textSize="24sp"
+                android:textStyle="bold"/>
+
+            <ImageButton
+                android:id="@+id/btnProfile"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_alignParentEnd="true"
+                android:background="?android:attr/selectableItemBackground"
+                android:src="@android:drawable/ic_menu_myplaces"/>
+        </RelativeLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewTrips"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
         <TextView
             android:id="@+id/emptyView"
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:layout_marginTop="100dp"
+            android:text="No plans yet. Tap + to start!"
             android:gravity="center"
-            android:text="@string/no_trips_message"
-            android:textSize="16sp" />
+            android:layout_marginTop="50dp"
+            android:textSize="16sp"
+            android:textColor="@android:color/darker_gray"
+            android:visibility="gone"/>
 
     </LinearLayout>
 
@@ -53,7 +60,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
-        android:contentDescription="@string/create_new_trip_description"
+        android:contentDescription="Create Trip"
         app:srcCompat="@android:drawable/ic_input_add" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

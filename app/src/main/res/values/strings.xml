@@ -30,7 +30,6 @@
     <string name="toast_search_nearby">正在搜索 %1$s 附近的餐厅...</string>
     <string name="toast_no_location_info">无法获取该景点的位置</string>
     <string name="poi_search_query">餐厅|咖啡馆</string>
-
     <string name="toast_select_at_least_one_tag">请至少选择一个你感兴趣的标签</string>
     <string name="toast_preferences_saved">偏好已保存，开始你的城市之旅吧！</string>
 
@@ -50,8 +49,6 @@
     </string-array>
 
     <string name="toast_fill_all_info">请填写所有信息，包括开始日期</string>
-
-
     <string name="title_create_citywalk">创建新的 CityWalk</string>
     <string name="hint_destination_city">目的地城市 (例如：北京)</string>
     <string name="hint_attractions">想去的景点 (用逗号 , 分隔)</string>
@@ -63,12 +60,10 @@
     <string name="no_trips_message">你还没有创建任何旅行计划。&#10;点击右下角的 \'+\' 按钮开始吧！</string>
     <string name="create_new_trip_description">创建新旅行</string>
     <string name="weather_example">晴 25°C</string>
-
     <string name="attraction_name">景点名称</string>
     <string name="button_search_nearby">搜周边</string>
     <string name="drag_or_delete">拖拽或删除</string>
     <string name="profile_title">个人资料与偏好设置</string>
-
     <string name="day_label">第 %1$d 天</string>
     <string name="date_format">M月d日</string>
     <string name="label_name">昵称</string>
@@ -78,9 +73,7 @@
     <string name="label_dietary">饮食偏好</string>
     <string name="btn_save">保存</string>
     <string name="toast_profile_saved">已保存个人资料</string>
-
-
-
-
+    <string name="desc_back">返回</string>
+    <string name="button_ai_assist">✨ AI 智能助手帮我规划</string>
 
 </resources>
