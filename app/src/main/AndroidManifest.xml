@@ -33,14 +33,13 @@
 
         <activity android:name=".CreateTripActivity" android:exported="false" />
         <activity android:name=".MapActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
 
         <meta-data
             android:name="com.amap.api.v2.apikey"
             android:value="e62768ee227f72513ced0cf44ebdd5db"/>
 
         <service android:name="com.amap.api.location.APSService"/>
-
-        <activity android:name=".ProfileActivity" />
 
     </application>
 
