@@ -15,12 +15,15 @@ public class Trip {
     public String startDate;
     public long createdAt; // 时间戳
 
-    public Trip(String userEmail, String targetCity, String attractions, int totalDays, String startDate) {
+    public String hotel;
+
+    public Trip(String userEmail, String targetCity, String attractions, int totalDays, String startDate, String hotel) {
         this.userEmail = userEmail;
         this.targetCity = targetCity;
         this.attractions = attractions;
         this.totalDays = totalDays;
         this.startDate = startDate;
         this.createdAt = System.currentTimeMillis();
+        this.hotel = hotel;
     }
 }

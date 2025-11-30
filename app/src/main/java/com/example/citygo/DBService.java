@@ -47,9 +47,9 @@ public class DBService {
     }
 
     // --- 行程 ---
-    public void saveTrip(String email, String city, String attractions, int days, String startDate) {
+    public void saveTrip(String email, String city, String attractions, int days, String startDate, String hotel) {
         executor.execute(() -> {
-            Trip trip = new Trip(email, city, attractions, days, startDate);
+            Trip trip = new Trip(email, city, attractions, days, startDate, hotel);
             appDao.insertTrip(trip);
             Log.d(TAG, "Trip saved locally: " + city);
         });

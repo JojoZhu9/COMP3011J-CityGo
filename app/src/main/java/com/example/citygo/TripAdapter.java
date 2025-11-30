@@ -38,7 +38,7 @@ public class TripAdapter extends RecyclerView.Adapter<TripAdapter.TripViewHolder
     @Override
     public void onBindViewHolder(@NonNull TripViewHolder holder, int position) {
         Trip trip = trips.get(position);
-        holder.binding.textCity.setText(trip.targetCity);
+        holder.binding.textCity.setText(trip.targetCity + " - " + trip.hotel);
         holder.binding.textDate.setText(trip.startDate + " (" + trip.totalDays + " Days)");
 
         holder.itemView.setOnClickListener(v -> {

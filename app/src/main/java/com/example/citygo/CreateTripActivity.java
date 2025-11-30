@@ -5,8 +5,12 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import android.util.Log;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
@@ -24,11 +28,20 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import com.google.android.libraries.places.api.Places;
+import com.google.android.libraries.places.api.model.AutocompletePrediction;
+import com.google.android.libraries.places.api.model.AutocompleteSessionToken;
+import com.google.android.libraries.places.api.net.FindAutocompletePredictionsRequest;
+import com.google.android.libraries.places.api.net.PlacesClient;
+
 
 public class CreateTripActivity extends AppCompatActivity {
 
@@ -51,12 +64,52 @@ public class CreateTripActivity extends AppCompatActivity {
         binding = ActivityCreateTripBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
+        Places.initialize(getApplicationContext(), "AIzaSyAR3DCQQ26plX8A7OUwAVp5lWWr_4hw1yE");
+        PlacesClient placesClient = Places.createClient(this);
+
+        setupHotelAutocomplete(placesClient);
+
         dbService = new DBService(this);
 
         binding.startDateButton.setOnClickListener(v -> showDatePickerDialog());
         binding.generatePlanButton.setOnClickListener(v -> generatePlan());
         binding.btnAiAssist.setOnClickListener(v -> showAIDialog());
     }
+
+    private void setupHotelAutocomplete(PlacesClient placesClient) {
+        AutoCompleteTextView hotelAutoComplete = binding.hotelAutoComplete;
+        AutocompleteSessionToken token = AutocompleteSessionToken.newInstance();
+
+        hotelAutoComplete.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (s.length() < 3) return; // start autocomplete after 3 characters
+
+                FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+                        .setSessionToken(token)
+                        .setQuery(s.toString())
+                        .build();
+
+                placesClient.findAutocompletePredictions(request).addOnSuccessListener(response -> {
+                    List<String> hotelNames = new ArrayList<>();
+                    for (AutocompletePrediction prediction : response.getAutocompletePredictions()) {
+                        hotelNames.add(prediction.getPrimaryText(null).toString());
+                    }
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTripActivity.this,
+                            android.R.layout.simple_dropdown_item_1line, hotelNames);
+                    hotelAutoComplete.setAdapter(adapter);
+                    hotelAutoComplete.showDropDown();
+                }).addOnFailureListener(exception -> {
+                    Log.e(TAG, "Autocomplete failed: " + exception.getMessage());
+                });
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
 
     // --- AI Feature Area ---
 
@@ -99,12 +152,14 @@ public class CreateTripActivity extends AppCompatActivity {
                 // We explicitly tell the AI to return English content.
                 String systemPrompt = "You are a professional travel planning assistant. Current date is " + today + ". " +
                         "Please generate a travel plan based on user requirements. " +
+                        "Each day must start and end at the hotel. " +
                         "You must strictly return pure JSON format data without markdown tags (like ```json). " +
                         "The JSON must contain the following fields: " +
                         "1. city (Target city name, in English) " +
-                        "2. attractions (5-8 recommended attractions, comma-separated string, in English) " +
-                        "3. days (Suggested duration, integer) " +
-                        "4. startDate (Departure date, format yyyy-MM-dd. Calculate based on user input, default to tomorrow if not specified). " +
+                        "2. hotel (Hotel name, in English) " +
+                        "3. attractions (5-8 recommended attractions, comma-separated string, in English) " +
+                        "4. days (Suggested duration, integer) " +
+                        "5. startDate (Departure date, format yyyy-MM-dd. Calculate based on user input, default to tomorrow if not specified). " +
                         "Ensure all text values are in English.";
 
                 String userMessage = "User Request: " + userRequest + ". User Interests: " + interests + ". Dietary Preferences: " + dietary;
@@ -172,6 +227,7 @@ public class CreateTripActivity extends AppCompatActivity {
                     String aiAttractions = tripPlan.optString("attractions");
                     int aiDays = tripPlan.optInt("days");
                     String aiDate = tripPlan.optString("startDate");
+                    String aiHotel = tripPlan.optString("hotel");
 
                     // 6. Update UI on Main Thread
                     new Handler(Looper.getMainLooper()).post(() -> {
@@ -181,6 +237,8 @@ public class CreateTripActivity extends AppCompatActivity {
 
                         selectedDate = aiDate;
                         binding.startDateButton.setText(aiDate);
+
+                        binding.hotelAutoComplete.setText(aiHotel);
 
                         Toast.makeText(CreateTripActivity.this, "AI generated plan for " + aiCity + "!", Toast.LENGTH_LONG).show();
                     });
@@ -237,6 +295,7 @@ public class CreateTripActivity extends AppCompatActivity {
     private void generatePlan() {
         String city = binding.cityEditText.getText().toString().trim();
         String attractions = binding.attractionsEditText.getText().toString().trim();
+        String hotel = binding.hotelAutoComplete.getText().toString().trim();
         String daysStr = binding.daysEditText.getText().toString().trim();
 
         if (TextUtils.isEmpty(city) || TextUtils.isEmpty(attractions) || TextUtils.isEmpty(daysStr) || selectedDate == null) {
@@ -251,13 +310,14 @@ public class CreateTripActivity extends AppCompatActivity {
 
         try {
             int days = Integer.parseInt(daysStr);
-            dbService.saveTrip(userEmail, city, attractions, days, selectedDate);
+            dbService.saveTrip(userEmail, city, attractions, days, selectedDate, hotel);
         } catch (NumberFormatException e) {
             Log.e(TAG, "Days format error");
         }
 
         Intent intent = new Intent(this, MapActivity.class);
         intent.putExtra("EXTRA_CITY", city);
+        intent.putExtra("EXTRA_HOTEL", hotel);
         intent.putExtra("EXTRA_ATTRACTIONS", attractions);
         intent.putExtra("EXTRA_DAYS", Integer.parseInt(daysStr));
         intent.putExtra("EXTRA_START_DATE", selectedDate);
