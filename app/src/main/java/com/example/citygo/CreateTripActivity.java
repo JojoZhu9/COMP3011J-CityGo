@@ -2,6 +2,7 @@ package com.example.citygo;
 
 import android.app.DatePickerDialog;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -57,6 +58,7 @@ public class CreateTripActivity extends AppCompatActivity {
     private String selectedDate = null;
     private DBService dbService;
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private com.google.android.libraries.places.api.model.RectangularBounds cityBounds = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,13 +69,60 @@ public class CreateTripActivity extends AppCompatActivity {
         Places.initialize(getApplicationContext(), "AIzaSyAR3DCQQ26plX8A7OUwAVp5lWWr_4hw1yE");
         PlacesClient placesClient = Places.createClient(this);
 
-        setupHotelAutocomplete(placesClient);
-
         dbService = new DBService(this);
+
+        // 【修改】当 City 输入框失去焦点时，去获取城市坐标，锁定 Hotel 搜索范围
+        binding.cityEditText.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                updateCityBounds(binding.cityEditText.getText().toString().trim());
+            }
+        });
+
+        setupHotelAutocomplete(placesClient);
 
         binding.startDateButton.setOnClickListener(v -> showDatePickerDialog());
         binding.generatePlanButton.setOnClickListener(v -> generatePlan());
         binding.btnAiAssist.setOnClickListener(v -> showAIDialog());
+    }
+
+    private void updateCityBounds(String cityName) {
+        if (TextUtils.isEmpty(cityName)) return;
+
+        executorService.execute(() -> {
+            try {
+                // 使用你的 Google Key
+                String urlStr = "https://maps.googleapis.com/maps/api/geocode/json?address="
+                        + Uri.encode(cityName)
+                        + "&key=AIzaSyAR3DCQQ26plX8A7OUwAVp5lWWr_4hw1yE";
+
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+
+                JSONObject json = new JSONObject(sb.toString());
+                if ("OK".equals(json.optString("status"))) {
+                    JSONObject viewport = json.getJSONArray("results")
+                            .getJSONObject(0).getJSONObject("geometry").getJSONObject("viewport");
+
+                    JSONObject northeast = viewport.getJSONObject("northeast");
+                    JSONObject southwest = viewport.getJSONObject("southwest");
+
+                    // 构建矩形范围
+                    cityBounds = com.google.android.libraries.places.api.model.RectangularBounds.newInstance(
+                            new com.google.android.gms.maps.model.LatLng(southwest.getDouble("lat"), southwest.getDouble("lng")),
+                            new com.google.android.gms.maps.model.LatLng(northeast.getDouble("lat"), northeast.getDouble("lng"))
+                    );
+                    Log.d(TAG, "City bounds updated for: " + cityName);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     private void setupHotelAutocomplete(PlacesClient placesClient) {
@@ -84,29 +133,46 @@ public class CreateTripActivity extends AppCompatActivity {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (s.length() < 3) return; // start autocomplete after 3 characters
+            public void afterTextChanged(Editable s) {}
 
-                FindAutocompletePredictionsRequest request = FindAutocompletePredictionsRequest.builder()
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                // 只要有输入就尝试触发，不设置过高的阈值
+                if (s.length() < 1) return;
+
+                FindAutocompletePredictionsRequest.Builder requestBuilder = FindAutocompletePredictionsRequest.builder()
                         .setSessionToken(token)
                         .setQuery(s.toString())
-                        .build();
+                        .setTypesFilter(java.util.Arrays.asList("lodging")); // 仅搜索住宿
 
-                placesClient.findAutocompletePredictions(request).addOnSuccessListener(response -> {
+                // 如果已经获取到城市范围，则应用偏好
+                if (cityBounds != null) {
+                    requestBuilder.setLocationBias(cityBounds);
+                }
+
+                placesClient.findAutocompletePredictions(requestBuilder.build()).addOnSuccessListener(response -> {
                     List<String> hotelNames = new ArrayList<>();
                     for (AutocompletePrediction prediction : response.getAutocompletePredictions()) {
                         hotelNames.add(prediction.getPrimaryText(null).toString());
                     }
-                    ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTripActivity.this,
-                            android.R.layout.simple_dropdown_item_1line, hotelNames);
-                    hotelAutoComplete.setAdapter(adapter);
-                    hotelAutoComplete.showDropDown();
+
+                    // 【核心修复】确保在主线程更新 UI
+                    runOnUiThread(() -> {
+                        ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTripActivity.this,
+                                android.R.layout.simple_dropdown_item_1line, hotelNames);
+                        hotelAutoComplete.setAdapter(adapter);
+                        adapter.notifyDataSetChanged();
+
+                        // 【关键】强制显示下拉列表，防止被输入法遮挡或不弹出
+                        if (hotelAutoComplete.hasFocus() && !hotelNames.isEmpty()) {
+                            hotelAutoComplete.showDropDown();
+                        }
+                    });
+
                 }).addOnFailureListener(exception -> {
                     Log.e(TAG, "Autocomplete failed: " + exception.getMessage());
                 });
             }
-            @Override
-            public void afterTextChanged(Editable s) {}
         });
     }
 
@@ -150,14 +216,25 @@ public class CreateTripActivity extends AppCompatActivity {
             try {
                 // 1. Construct System Prompt (IN ENGLISH)
                 // We explicitly tell the AI to return English content.
+                // 1. Construct System Prompt (IN ENGLISH)
                 String systemPrompt = "You are a professional travel planning assistant. Current date is " + today + ". " +
                         "Please generate a travel plan based on user requirements. " +
+
+                        // --- 修改开始：核心约束 ---
+                        "CRITICAL LOCATION RULES: " +
+                        "1. SCOPE: The hotel and ALL attractions must be geographically located STRICTLY within the target 'city'. Do not suggest attractions from neighboring cities or regions. " +
+                        "2. NAMING: Use the official, standard English names for attractions and hotels exactly as they appear on Google Maps or AMap. " +
+                        "   - Bad example: 'The beautiful ancient palace in Beijing' " +
+                        "   - Good example: 'The Palace Museum' " +
+                        "   - Do not include adjectives, descriptions, or prefixes like 'Visit the...'. " +
+                        // --- 修改结束 ---
+
                         "Each day must start and end at the hotel. " +
                         "You must strictly return pure JSON format data without markdown tags (like ```json). " +
                         "The JSON must contain the following fields: " +
                         "1. city (Target city name, in English) " +
-                        "2. hotel (Hotel name, in English) " +
-                        "3. attractions (5-8 recommended attractions, comma-separated string, in English) " +
+                        "2. hotel (A real, existing Hotel name located in the city, in English) " +
+                        "3. attractions (5-8 recommended attractions, comma-separated string, in English. Must be distinct, real place names.) " +
                         "4. days (Suggested duration, integer) " +
                         "5. startDate (Departure date, format yyyy-MM-dd. Calculate based on user input, default to tomorrow if not specified). " +
                         "Ensure all text values are in English.";

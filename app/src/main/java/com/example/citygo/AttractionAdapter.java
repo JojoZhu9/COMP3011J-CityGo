@@ -16,13 +16,6 @@ import java.util.List;
 
 public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.AttractionViewHolder> {
 
-    public interface OnAttractionActionsListener {
-        void onSearchNearbyClick(String attractionName);
-        void onAttractionRemoved(int position);
-        // Notify the Activity after dragging ends
-        void onAttractionsReordered();
-    }
-
     // Define an interface to allow the Activity to command the Adapter to start dragging
     public interface StartDragListener {
         void requestDrag(RecyclerView.ViewHolder viewHolder);
@@ -102,6 +95,21 @@ public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.At
             }
             return false;
         });
+
+        holder.itemView.setOnClickListener(v -> {
+            if (actionsListener != null) {
+                actionsListener.onAttractionClick(holder.getAdapterPosition());
+            }
+        });
+    }
+
+    public interface OnAttractionActionsListener {
+        void onSearchNearbyClick(String attractionName);
+        void onAttractionRemoved(int position);
+        void onAttractionsReordered();
+
+        // 【新增】点击条目本身的接口
+        void onAttractionClick(int position);
     }
 
     @Override
