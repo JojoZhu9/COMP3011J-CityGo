@@ -86,6 +86,10 @@ public class MapActivity extends AppCompatActivity implements
     private Map<Marker, GoogleMapsService.PlaceItem> markerPlaceItemMap = new HashMap<>();
     private Map<Marker, String> itineraryMarkerMap = new HashMap<>();
     private ItemTouchHelper itemTouchHelper;
+    private LatLng hotelLatLng;
+    private String hotelName;
+    private Marker hotelMarker;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,6 +128,7 @@ public class MapActivity extends AppCompatActivity implements
         String attractionsStr = intent.getStringExtra("EXTRA_ATTRACTIONS");
         totalDays = intent.getIntExtra("EXTRA_DAYS", 0);
         startDateStr = intent.getStringExtra("EXTRA_START_DATE");
+        hotelName = getIntent().getStringExtra("EXTRA_HOTEL");
 
         originalAttractionNames = new ArrayList<>();
         if (attractionsStr != null) {
@@ -162,6 +167,10 @@ public class MapActivity extends AppCompatActivity implements
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         this.googleMap = map;
+
+        if (hotelName != null) {
+            fetchHotelLocation(hotelName);
+        }
         googleMap.getUiSettings().setZoomControlsEnabled(false);
         googleMap.getUiSettings().setZoomGesturesEnabled(true);
         googleMap.setOnMarkerClickListener(this);
@@ -384,6 +393,8 @@ public class MapActivity extends AppCompatActivity implements
         markerPlaceItemMap.clear();
         nearbyPoiMarkers.clear();
         itineraryMarkerMap.clear();
+
+        addOrUpdateHotelMarkerOnMap();
 
         fetchWeatherForDay(day);
         budgetController.updateBudgetUI(getTargetDateStr(day));
@@ -665,6 +676,73 @@ public class MapActivity extends AppCompatActivity implements
         calendar.add(Calendar.DAY_OF_YEAR, day - 1);
         return new SimpleDateFormat("yyyy-MM-dd", Locale.US).format(calendar.getTime());
     }
+
+    private void fetchHotelLocation(String hotelName) {
+        if (hotelName == null || hotelName.isEmpty()) return;
+
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        executor.execute(() -> {
+            try {
+                // Use your Google API key
+                String urlStr = "https://maps.googleapis.com/maps/api/geocode/json?address="
+                        + Uri.encode(hotelName + " " + city)
+                        + "&key=AIzaSyAR3DCQQ26plX8A7OUwAVp5lWWr_4hw1yE";
+
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+
+                BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) sb.append(line);
+
+                JSONObject json = new JSONObject(sb.toString());
+
+                if ("OK".equals(json.optString("status"))) {
+
+                    JSONObject location = json.getJSONArray("results")
+                            .getJSONObject(0)
+                            .getJSONObject("geometry")
+                            .getJSONObject("location");
+
+                    double lat = location.getDouble("lat");
+                    double lng = location.getDouble("lng");
+                    hotelLatLng = new LatLng(lat, lng);
+
+                    runOnUiThread(this::addOrUpdateHotelMarkerOnMap);
+                }
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+
+    private void addOrUpdateHotelMarkerOnMap() {
+        if (googleMap == null || hotelLatLng == null) return;
+
+        // remove previous marker instance if exists (avoid duplicates)
+        if (hotelMarker != null) {
+            hotelMarker.remove();
+            hotelMarker = null;
+        }
+
+        // Use a custom H marker if you want consistent look:
+        BitmapDescriptor icon = getCustomMarker("H"); // or BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
+
+        hotelMarker = googleMap.addMarker(new MarkerOptions()
+                .position(hotelLatLng)
+                .title(hotelName != null ? hotelName : "Hotel")
+                .snippet(hotelName != null ? hotelName : "")
+                .icon(icon)
+                .zIndex(999f) // draw on top
+        );
+    }
+
+
+
 
     // Lifecycle
     @Override protected void onDestroy() {
