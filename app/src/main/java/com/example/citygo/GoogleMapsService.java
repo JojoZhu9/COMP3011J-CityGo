@@ -129,41 +129,50 @@ public class GoogleMapsService {
         });
     }
 
-    /** Nearby search for tourist attractions within 500m */
-    public void searchNearbyAttractions(double centerLat,
-                                        double centerLng,
-                                        NearbyCallback callback) {
+    /** Nearby search for restaurants / cafes within 500m */
+    public void searchNearbyRestaurants(double lat, double lng, PlacesCallback callback) {
+        executor.execute(() -> {
+            try {
+                String urlStr = "https://maps.googleapis.com/maps/api/place/nearbysearch/json?" +
+                        "location=" + lat + "," + lng +
+                        "&radius=1200" +
+                        "&type=restaurant" +
+                        "&key=" + apiKey;
 
-        String urlStr = "https://maps.googleapis.com/maps/api/place/nearbysearch/json"
-                + "?location=" + centerLat + "," + centerLng
-                + "&radius=500"
-                + "&type=tourist_attraction"
-                + "&key=" + apiKey;
+                URL url = new URL(urlStr);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
 
-        runGet(urlStr, json -> {
-            List<PlaceItem> places = new ArrayList<>();
+                BufferedReader br = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                StringBuilder sb = new StringBuilder();
+                String line;
+                while ((line = br.readLine()) != null) sb.append(line);
 
-            if ("OK".equals(json.optString("status"))) {
-                JSONArray results = json.optJSONArray("results");
-                if (results != null) {
-                    for (int i = 0; i < results.length(); i++) {
-                        JSONObject obj = results.getJSONObject(i);
-                        String name = obj.optString("name");
-                        String type = "Place";
-                        JSONArray typesArr = obj.optJSONArray("types");
-                        if (typesArr != null && typesArr.length() > 0) {
-                            type = typesArr.getString(0);
-                        }
-                        JSONObject loc = obj.getJSONObject("geometry").getJSONObject("location");
-                        double lat = loc.getDouble("lat");
-                        double lng = loc.getDouble("lng");
-                        places.add(new PlaceItem(name, type, lat, lng));
-                    }
+                JSONObject root = new JSONObject(sb.toString());
+                JSONArray results = root.getJSONArray("results");
+
+                List<PlaceItem> places = new ArrayList<>();
+
+                for (int i = 0; i < results.length(); i++) {
+                    JSONObject obj = results.getJSONObject(i);
+                    JSONObject loc = obj.getJSONObject("geometry").getJSONObject("location");
+
+                    places.add(new PlaceItem(
+                            obj.optString("name"),
+                            "Restaurant",
+                            loc.getDouble("lat"),
+                            loc.getDouble("lng")
+                    ));
                 }
+
+                callback.onResult(places);
+
+            } catch (Exception e) {
+                callback.onResult(null);
             }
-            callback.onResult(places);
         });
     }
+
 
     /** Directions API: driving route with optional waypoints */
     public void fetchRoute(LatLonPoint from,
@@ -272,4 +281,9 @@ public class GoogleMapsService {
         }
         return poly;
     }
+
+    public interface PlacesCallback {
+        void onResult(List<PlaceItem> places);
+    }
+
 }

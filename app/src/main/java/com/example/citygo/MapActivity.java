@@ -52,6 +52,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class MapActivity extends AppCompatActivity implements
+
         OnMapReadyCallback,
         GoogleMap.OnMarkerClickListener,
         GoogleMap.OnInfoWindowClickListener,
@@ -326,16 +327,16 @@ public class MapActivity extends AppCompatActivity implements
 
     // ---- Google Places Nearby Search for "Search Nearby" ----
 
-    private void searchNearbyPlaces(double centerLat, double centerLng) {
+    private void searchNearbyRestaurants(double centerLat, double centerLng) {
         if (mapsService == null) return;
 
-        mapsService.searchNearbyAttractions(centerLat, centerLng, places -> {
+        mapsService.searchNearbyRestaurants(centerLat, centerLng, places -> {
             runOnUiThread(() -> {
                 clearNearbyMarkers();
 
                 if (places == null || places.isEmpty()) {
                     Toast.makeText(MapActivity.this,
-                            getString(R.string.toast_no_nearby_places),
+                            "No restaurants found nearby.",
                             Toast.LENGTH_SHORT
                     ).show();
                 } else {
@@ -343,13 +344,14 @@ public class MapActivity extends AppCompatActivity implements
                         addNearbyMarker(place);
                     }
                     Toast.makeText(MapActivity.this,
-                            getString(R.string.toast_marked_recommendations),
+                            "Nearby restaurants marked.",
                             Toast.LENGTH_SHORT
                     ).show();
                 }
             });
         });
     }
+
 
     // ---- Google Directions for routes ----
 
@@ -491,7 +493,7 @@ public class MapActivity extends AppCompatActivity implements
                 URL url = new URL("https://api.deepseek.com/chat/completions");
                 HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                 conn.setRequestMethod("POST");
-                conn.setRequestProperty("Authorization", "Bearer YOUR_DEEPSEEK_API_KEY");
+                conn.setRequestProperty("Authorization", "Bearer sk-d51b987e1be546148868cc1fc988d52e");
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setDoOutput(true);
                 OutputStream os = conn.getOutputStream();
@@ -556,8 +558,9 @@ public class MapActivity extends AppCompatActivity implements
             return;
         }
 
-        searchNearbyPlaces(centerPoint.getLatitude(), centerPoint.getLongitude());
+        searchNearbyRestaurants(centerPoint.getLatitude(), centerPoint.getLongitude());
     }
+
 
     @Override
     public void onAttractionClick(int position) {
