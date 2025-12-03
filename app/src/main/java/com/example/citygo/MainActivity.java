@@ -57,6 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra("EXTRA_ATTRACTIONS", trip.attractions);
                 intent.putExtra("EXTRA_DAYS", trip.totalDays);
                 intent.putExtra("EXTRA_START_DATE", trip.startDate);
+                intent.putExtra("EXTRA_HOTEL", trip.hotel);
                 startActivity(intent);
             }
 

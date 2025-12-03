@@ -187,4 +187,39 @@
         android:contentDescription="@string/desc_back"
         app:tint="@android:color/black"/>
 
+    <LinearLayout
+        android:id="@+id/transportButtons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="false"
+        android:layout_marginStart="80dp"
+        android:layout_marginTop="40dp"
+        android:background="@drawable/rounded_bg"
+        android:orientation="horizontal"
+        android:padding="8dp">
+
+        <Button
+            android:id="@+id/btnWalk"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Walk" />
+
+        <Button
+            android:id="@+id/btnDrive"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Drive" />
+
+        <Button
+            android:id="@+id/btnTransit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Transit" />
+
+    </LinearLayout>
+
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

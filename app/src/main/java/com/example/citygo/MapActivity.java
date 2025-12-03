@@ -6,7 +6,6 @@ import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,6 +27,7 @@ import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.android.material.chip.Chip;
 
@@ -35,7 +35,6 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
@@ -43,7 +42,6 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -90,6 +88,11 @@ public class MapActivity extends AppCompatActivity implements
     private String hotelName;
     private Marker hotelMarker;
 
+    private RouteManager routeManager;
+    private Polyline currentPolyline;
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -106,6 +109,8 @@ public class MapActivity extends AppCompatActivity implements
         // Initialize GoogleMapsService
         mapsService = new GoogleMapsService(GOOGLE_MAPS_API_KEY, executorService);
 
+
+
         // Initialize budget controller
         budgetController = new TripBudgetController(
                 this,
@@ -118,6 +123,8 @@ public class MapActivity extends AppCompatActivity implements
         mapView = binding.mapView;
         mapView.onCreate(savedInstanceState);
         mapView.getMapAsync(this);
+
+
 
         setupRecyclerView();
         setupZoomButtons();
@@ -167,6 +174,9 @@ public class MapActivity extends AppCompatActivity implements
     @Override
     public void onMapReady(@NonNull GoogleMap map) {
         this.googleMap = map;
+
+        routeManager = new RouteManager(googleMap, getString(R.string.google_maps_key));
+
 
         if (hotelName != null) {
             fetchHotelLocation(hotelName);
@@ -387,9 +397,11 @@ public class MapActivity extends AppCompatActivity implements
 
     private void displayPlanForDay(int day) {
         this.currentSelectedDay = day;
+
         if (googleMap != null) {
             googleMap.clear();
         }
+
         markerPlaceItemMap.clear();
         nearbyPoiMarkers.clear();
         itineraryMarkerMap.clear();
@@ -403,36 +415,47 @@ public class MapActivity extends AppCompatActivity implements
         List<String> dayNames = tripPlanManager.getDayNames(day);
 
         attractionAdapter.updateData(dayNames);
+
         if (dayPoints == null || dayPoints.isEmpty()) return;
 
+        // Draw POI markers
         for (int i = 0; i < dayPoints.size(); i++) {
             LatLonPoint p = dayPoints.get(i);
             LatLng latLng = new LatLng(p.getLatitude(), p.getLongitude());
+
             MarkerOptions markerOptions = new MarkerOptions()
                     .position(latLng)
                     .title(dayNames.get(i))
                     .icon(getCustomMarker(String.valueOf(i + 1)));
+
             if (googleMap != null) {
                 Marker marker = googleMap.addMarker(markerOptions);
                 itineraryMarkerMap.put(marker, dayNames.get(i));
             }
         }
 
-        if (dayPoints.size() >= 2) {
-            LatLonPoint from = dayPoints.get(0);
-            LatLonPoint to = dayPoints.get(dayPoints.size() - 1);
-            List<LatLonPoint> passby = (dayPoints.size() > 2)
-                    ? dayPoints.subList(1, dayPoints.size() - 1)
-                    : new ArrayList<>();
-            fetchRouteWithGoogle(from, to, passby);
+        if (hotelLatLng == null) return;  // IMPORTANT
+
+        // -------- Build correct route chain --------
+        List<LatLng> routeChain = new ArrayList<>();
+        routeChain.add(hotelLatLng); // Start
+
+        for (LatLonPoint p : dayPoints) {
+            routeChain.add(new LatLng(p.getLatitude(), p.getLongitude()));
         }
 
+        routeChain.add(hotelLatLng); // End back at hotel
+
+        drawMultiSegmentRouteSafe(routeChain);
+
+        // Center camera
         if (googleMap != null) {
             LatLonPoint first = dayPoints.get(0);
             googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
                     new LatLng(first.getLatitude(), first.getLongitude()), 12));
         }
     }
+
 
     private void setupDaySwitcherUI() {
         binding.dayChipGroup.removeAllViews();
@@ -578,16 +601,42 @@ public class MapActivity extends AppCompatActivity implements
         List<LatLonPoint> currentPoints = tripPlanManager.getDayPoints(currentSelectedDay);
 
         if (currentPoints != null && position < currentPoints.size()) {
+
             LatLonPoint point = currentPoints.get(position);
 
+            // Move camera
             if (googleMap != null) {
                 googleMap.animateCamera(CameraUpdateFactory.newLatLngZoom(
-                        new LatLng(point.getLatitude(), point.getLongitude()),
-                        15
+                        new LatLng(point.getLatitude(), point.getLongitude()), 15
                 ));
+            }
+
+            // ---- ADD THIS: Request route from hotel to this attraction ----
+            if (hotelLatLng != null) {
+
+                LatLng poiLatLng = new LatLng(point.getLatitude(), point.getLongitude());
+
+                routeManager.requestRoute(
+                        hotelLatLng,
+                        poiLatLng,
+                        "walking", // or "driving" / "transit"
+                        new RouteCallBack() {
+
+                            @Override
+                            public void onRouteReady(Polyline polyline) {
+                                Toast.makeText(MapActivity.this, "Route Loaded", Toast.LENGTH_SHORT).show();
+                            }
+
+                            @Override
+                            public void onRouteError(String error) {
+                                Toast.makeText(MapActivity.this, "Route Error: " + error, Toast.LENGTH_LONG).show();
+                            }
+                        }
+                );
             }
         }
     }
+
 
     @Override
     public void requestDrag(RecyclerView.ViewHolder viewHolder) {
@@ -710,7 +759,11 @@ public class MapActivity extends AppCompatActivity implements
                     double lng = location.getDouble("lng");
                     hotelLatLng = new LatLng(lat, lng);
 
-                    runOnUiThread(this::addOrUpdateHotelMarkerOnMap);
+                    runOnUiThread(() -> {
+                        addOrUpdateHotelMarkerOnMap();
+                        displayPlanForDay(currentSelectedDay); // <-- ADD THIS
+                    });
+
                 }
 
             } catch (Exception e) {
@@ -740,6 +793,40 @@ public class MapActivity extends AppCompatActivity implements
                 .zIndex(999f) // draw on top
         );
     }
+
+    private void drawMultiSegmentRouteSafe(List<LatLng> points) {
+        if (routeManager == null || points.size() < 2) return;
+
+        List<LatLng> finalPath = new ArrayList<>();
+
+        new Thread(() -> {
+            try {
+                for (int i = 0; i < points.size() - 1; i++) {
+                    List<LatLng> segment =
+                            routeManager.syncRequestRoute(points.get(i), points.get(i + 1), "walking");
+
+                    if (segment != null) {
+                        finalPath.addAll(segment);
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    if (currentPolyline != null) currentPolyline.remove();
+
+                    currentPolyline = googleMap.addPolyline(new PolylineOptions()
+                            .addAll(finalPath)
+                            .width(15f)
+                            .color(Color.rgb(0, 102, 204)) // blue
+                            .clickable(false)
+                    );
+                });
+
+            } catch (Exception ignored) { }
+        }).start();
+    }
+
+
+
 
 
 
