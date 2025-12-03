@@ -375,8 +375,7 @@ public class MapActivity extends AppCompatActivity implements
 
     // ==========================================
     // UI Display & Events
-    // ==========================================
-
+    // ========================================
     private void displayPlanForDay(int day) {
         this.currentSelectedDay = day;
 
