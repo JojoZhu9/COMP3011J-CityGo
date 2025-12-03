@@ -372,24 +372,6 @@ public class MapActivity extends AppCompatActivity implements
     }
 
 
-    // ---- Google Directions for routes ----
-
-    private void fetchRouteWithGoogle(LatLonPoint from,
-                                      LatLonPoint to,
-                                      List<LatLonPoint> passby) {
-
-        mapsService.fetchRoute(from, to, passby, path -> runOnUiThread(() -> {
-            if (googleMap == null || path == null || path.isEmpty()) return;
-            googleMap.addPolyline(new PolylineOptions()
-                    .addAll(path)
-                    .width(20f)
-                    .color(Color.WHITE));
-            googleMap.addPolyline(new PolylineOptions()
-                    .addAll(path)
-                    .width(16f)
-                    .color(Color.argb(255, 1, 159, 241)));
-        }));
-    }
 
     // ==========================================
     // UI Display & Events
@@ -816,7 +798,7 @@ public class MapActivity extends AppCompatActivity implements
                     currentPolyline = googleMap.addPolyline(new PolylineOptions()
                             .addAll(finalPath)
                             .width(15f)
-                            .color(Color.rgb(0, 102, 204)) // blue
+                            .color(Color.rgb(0, 122, 255))   // blue
                             .clickable(false)
                     );
                 });
