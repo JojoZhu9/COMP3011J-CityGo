@@ -51,7 +51,6 @@ public class MainActivity extends AppCompatActivity {
         adapter.setOnTripActionListener(new TripAdapter.OnTripActionListener() {
             @Override
             public void onTripClick(Trip trip) {
-                // 点击进入 MapActivity，传入保存的数据
                 Intent intent = new Intent(MainActivity.this, MapActivity.class);
                 intent.putExtra("EXTRA_CITY", trip.targetCity);
                 intent.putExtra("EXTRA_ATTRACTIONS", trip.attractions);

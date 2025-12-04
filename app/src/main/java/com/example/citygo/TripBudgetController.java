@@ -18,8 +18,6 @@ import java.util.Locale;
  * - updates daily budget progress bar
  * - shows expense list dialog
  * - shows add-expense dialog
- *
- * No map or routing logic here.
  */
 public class TripBudgetController {
 

@@ -75,7 +75,7 @@ public class RouteOptimizer {
                 unvisited.remove(nearestIndex);
                 route.add(current);
             } else {
-                // All remaining points have no coordinates → append them directly
+                // All remaining points have no coordinates so append them directly
                 route.addAll(unvisited);
                 break;
             }
@@ -83,7 +83,7 @@ public class RouteOptimizer {
         return route;
     }
 
-    // Global nearest-neighbor sorting: creates an ordered list covering all attractions
+    // Global nearest neighbor sorting: creates an ordered list covering all attractions
     public static List<String> sortAttractionsByNearestNeighbor(List<String> attractions,
                                                                 Map<String, LatLonPoint> attractionPoints) {
         if (attractions == null || attractions.size() < 2) return attractions;

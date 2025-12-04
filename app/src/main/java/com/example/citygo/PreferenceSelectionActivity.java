@@ -30,12 +30,7 @@ public class PreferenceSelectionActivity extends AppCompatActivity {
 
         populateChipGroup();
 
-        binding.finishButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                saveUserPreferencesAndNavigate();
-            }
-        });
+        binding.finishButton.setOnClickListener(v -> saveUserPreferencesAndNavigate());
     }
 
     private void populateChipGroup() {

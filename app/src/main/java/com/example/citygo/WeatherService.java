@@ -63,7 +63,7 @@ public class WeatherService {
     }
 
     private static int getWeatherIconResource(Context context, int code) {
-        String name = "ic_qweather_100"; // 默认
+        String name = "ic_qweather_100";
         if (code >= 1 && code <= 3) name = "ic_qweather_101";
         else if (code >= 51) name = "ic_qweather_305";
         return context.getResources().getIdentifier(name, "drawable", context.getPackageName());

@@ -90,7 +90,6 @@ public class CreateTripActivity extends AppCompatActivity {
 
         executorService.execute(() -> {
             try {
-                // 使用你的 Google Key
                 String urlStr = "https://maps.googleapis.com/maps/api/geocode/json?address="
                         + Uri.encode(cityName)
                         + "&key=AIzaSyAR3DCQQ26plX8A7OUwAVp5lWWr_4hw1yE";
@@ -112,7 +111,6 @@ public class CreateTripActivity extends AppCompatActivity {
                     JSONObject northeast = viewport.getJSONObject("northeast");
                     JSONObject southwest = viewport.getJSONObject("southwest");
 
-                    // 构建矩形范围
                     cityBounds = com.google.android.libraries.places.api.model.RectangularBounds.newInstance(
                             new com.google.android.gms.maps.model.LatLng(southwest.getDouble("lat"), southwest.getDouble("lng")),
                             new com.google.android.gms.maps.model.LatLng(northeast.getDouble("lat"), northeast.getDouble("lng"))
@@ -137,15 +135,13 @@ public class CreateTripActivity extends AppCompatActivity {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                // 只要有输入就尝试触发，不设置过高的阈值
                 if (s.length() < 1) return;
 
                 FindAutocompletePredictionsRequest.Builder requestBuilder = FindAutocompletePredictionsRequest.builder()
                         .setSessionToken(token)
                         .setQuery(s.toString())
-                        .setTypesFilter(java.util.Arrays.asList("lodging")); // 仅搜索住宿
+                        .setTypesFilter(java.util.Arrays.asList("lodging"));
 
-                // 如果已经获取到城市范围，则应用偏好
                 if (cityBounds != null) {
                     requestBuilder.setLocationBias(cityBounds);
                 }
@@ -156,14 +152,12 @@ public class CreateTripActivity extends AppCompatActivity {
                         hotelNames.add(prediction.getPrimaryText(null).toString());
                     }
 
-                    // 【核心修复】确保在主线程更新 UI
                     runOnUiThread(() -> {
                         ArrayAdapter<String> adapter = new ArrayAdapter<>(CreateTripActivity.this,
                                 android.R.layout.simple_dropdown_item_1line, hotelNames);
                         hotelAutoComplete.setAdapter(adapter);
                         adapter.notifyDataSetChanged();
 
-                        // 【关键】强制显示下拉列表，防止被输入法遮挡或不弹出
                         if (hotelAutoComplete.hasFocus() && !hotelNames.isEmpty()) {
                             hotelAutoComplete.showDropDown();
                         }
@@ -214,20 +208,16 @@ public class CreateTripActivity extends AppCompatActivity {
 
         executorService.execute(() -> {
             try {
-                // 1. Construct System Prompt (IN ENGLISH)
-                // We explicitly tell the AI to return English content.
-                // 1. Construct System Prompt (IN ENGLISH)
+                // 1. Construct System Prompt
                 String systemPrompt = "You are a professional travel planning assistant. Current date is " + today + ". " +
                         "Please generate a travel plan based on user requirements. " +
 
-                        // --- 修改开始：核心约束 ---
                         "CRITICAL LOCATION RULES: " +
                         "1. SCOPE: The hotel and ALL attractions must be geographically located STRICTLY within the target 'city'. Do not suggest attractions from neighboring cities or regions. " +
                         "2. NAMING: Use the official, standard English names for attractions and hotels exactly as they appear on Google Maps or AMap. " +
                         "   - Bad example: 'The beautiful ancient palace in Beijing' " +
                         "   - Good example: 'The Palace Museum' " +
                         "   - Do not include adjectives, descriptions, or prefixes like 'Visit the...'. " +
-                        // --- 修改结束 ---
 
                         "Each day must start and end at the hotel. " +
                         "You must strictly return pure JSON format data without markdown tags (like ```json). " +

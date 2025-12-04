@@ -42,7 +42,6 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ExpenseV
         holder.binding.textAmount.setText(String.format(Locale.US, "- %.2f", expense.amount));
         holder.binding.textDate.setText(expense.dateStr);
 
-        // 简单的首字母图标
         if (!expense.type.isEmpty()) {
             holder.binding.textCategoryIcon.setText(expense.type.substring(0, 1).toUpperCase());
         }

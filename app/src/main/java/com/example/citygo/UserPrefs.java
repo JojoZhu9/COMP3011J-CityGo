@@ -9,7 +9,6 @@ import java.util.Set;
 
 public class UserPrefs {
     private static final String PREFS = "CityGoPrefs";
-
     public static final String K_ONBOARDING = "is_onboarding_complete";
     public static final String K_NAME = "user_name";
     public static final String K_EMAIL = "user_email";

@@ -60,10 +60,6 @@ public class GoogleMapsService {
         }
     }
 
-    public interface NearbyCallback {
-        void onResult(List<PlaceItem> places);
-    }
-
     public interface RouteCallback {
         void onResult(List<LatLng> path);
     }
@@ -173,49 +169,6 @@ public class GoogleMapsService {
         });
     }
 
-
-    /** Directions API: driving route with optional waypoints */
-    public void fetchRoute(LatLonPoint from,
-                           LatLonPoint to,
-                           List<LatLonPoint> passby,
-                           RouteCallback callback) {
-
-        StringBuilder urlBuilder = new StringBuilder(
-                "https://maps.googleapis.com/maps/api/directions/json?");
-        urlBuilder.append("origin=").append(from.getLatitude())
-                .append(",").append(from.getLongitude());
-        urlBuilder.append("&destination=").append(to.getLatitude())
-                .append(",").append(to.getLongitude());
-
-        if (passby != null && !passby.isEmpty()) {
-            urlBuilder.append("&waypoints=");
-            for (int i = 0; i < passby.size(); i++) {
-                LatLonPoint p = passby.get(i);
-                urlBuilder.append(p.getLatitude())
-                        .append(",").append(p.getLongitude());
-                if (i < passby.size() - 1) urlBuilder.append("|");
-            }
-        }
-        urlBuilder.append("&mode=driving&key=").append(apiKey);
-
-        runGet(urlBuilder.toString(), json -> {
-            List<LatLng> path = new ArrayList<>();
-            if (!"OK".equals(json.optString("status"))) {
-                callback.onResult(path);
-                return;
-            }
-            JSONArray routes = json.optJSONArray("routes");
-            if (routes == null || routes.length() == 0) {
-                callback.onResult(path);
-                return;
-            }
-            JSONObject route = routes.getJSONObject(0);
-            JSONObject overview = route.getJSONObject("overview_polyline");
-            String encoded = overview.getString("points");
-            path.addAll(decodePolyline(encoded));
-            callback.onResult(path);
-        });
-    }
 
     // ------------------ Internal helpers ------------------
 

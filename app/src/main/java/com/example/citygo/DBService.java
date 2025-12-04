@@ -31,7 +31,6 @@ public class DBService {
         appDao = db.appDao();
     }
 
-    // --- 用户 ---
     public void saveUserProfile(String name, String email, String homeCity, int budget, String dietaryPrefs) {
         executor.execute(() -> {
             User user = new User(email, name, homeCity, budget, dietaryPrefs);
@@ -46,7 +45,6 @@ public class DBService {
         });
     }
 
-    // --- 行程 ---
     public void saveTrip(String email, String city, String attractions, int days, String startDate, String hotel) {
         executor.execute(() -> {
             Trip trip = new Trip(email, city, attractions, days, startDate, hotel);
@@ -66,9 +64,6 @@ public class DBService {
         executor.execute(() -> appDao.deleteTrip(trip));
     }
 
-    // --- 【新增】记账相关 ---
-
-    // 1. 获取当前的 Trip 对象 (为了拿到 tripId)
     public void getTrip(String city, String startDate, DataCallback<Trip> callback) {
         executor.execute(() -> {
             Trip trip = appDao.getTripByCityAndDate(city, startDate);
@@ -76,7 +71,6 @@ public class DBService {
         });
     }
 
-    // 2. 添加一笔消费
     public void addExpense(int tripId, String type, double amount, String dateStr) {
         executor.execute(() -> {
             Expense expense = new Expense(tripId, type, amount, dateStr);
@@ -85,7 +79,6 @@ public class DBService {
         });
     }
 
-    // 3. 获取某天的总消费
     public void getDailyTotal(int tripId, String dateStr, DataCallback<Double> callback) {
         executor.execute(() -> {
             Double total = appDao.getDailyTotalExpense(tripId, dateStr);
@@ -93,7 +86,6 @@ public class DBService {
         });
     }
 
-    // 获取某天消费列表
     public void getDailyExpensesList(int tripId, String dateStr, DataCallback<List<Expense>> callback) {
         executor.execute(() -> {
             List<Expense> list = appDao.getDailyExpenses(tripId, dateStr);
@@ -101,10 +93,9 @@ public class DBService {
         });
     }
 
-    // 删除消费
     public void deleteExpense(Expense expense) {
         executor.execute(() -> {
-            appDao.deleteExpense(expense); // 注意：你需要在 AppDao 里加一个 @Delete void deleteExpense(Expense expense);
+            appDao.deleteExpense(expense);
         });
     }
 }

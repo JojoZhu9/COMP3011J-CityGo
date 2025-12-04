@@ -51,12 +51,6 @@ public class AttractionAdapter extends RecyclerView.Adapter<AttractionAdapter.At
         notifyItemMoved(fromPosition, toPosition);
     }
 
-    // Method called when an item is removed
-    public void onItemRemove(int position) {
-        attractionNames.remove(position);
-        notifyItemRemoved(position);
-    }
-
     @NonNull
     @Override
     public AttractionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {

@@ -10,7 +10,7 @@ public class Trip {
 
     public String userEmail;
     public String targetCity;
-    public String attractions; // 存为字符串，例如 "A,B,C"
+    public String attractions;
     public int totalDays;
     public String startDate;
     public long createdAt; // 时间戳

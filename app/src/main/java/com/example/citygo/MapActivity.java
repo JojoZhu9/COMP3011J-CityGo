@@ -273,7 +273,7 @@ public class MapActivity extends AppCompatActivity implements
     }
 
     // ==========================================
-    // Search Logic (Google APIs only)
+    // Search Logic
     // ==========================================
 
     private void startSmartPlanning() {
@@ -742,7 +742,7 @@ public class MapActivity extends AppCompatActivity implements
 
                     runOnUiThread(() -> {
                         addOrUpdateHotelMarkerOnMap();
-                        displayPlanForDay(currentSelectedDay); // <-- ADD THIS
+                        displayPlanForDay(currentSelectedDay);
                     });
 
                 }
@@ -763,8 +763,7 @@ public class MapActivity extends AppCompatActivity implements
             hotelMarker = null;
         }
 
-        // Use a custom H marker if you want consistent look:
-        BitmapDescriptor icon = getCustomMarker("H"); // or BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE);
+        BitmapDescriptor icon = getCustomMarker("H");
 
         hotelMarker = googleMap.addMarker(new MarkerOptions()
                 .position(hotelLatLng)
@@ -805,12 +804,6 @@ public class MapActivity extends AppCompatActivity implements
             } catch (Exception ignored) { }
         }).start();
     }
-
-
-
-
-
-
 
     // Lifecycle
     @Override protected void onDestroy() {
