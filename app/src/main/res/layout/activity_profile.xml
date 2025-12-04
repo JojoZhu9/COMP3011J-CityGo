@@ -84,7 +84,9 @@
                 android:id="@+id/inputCurrency"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:inputType="none" />
+                android:inputType="none"
+                android:focusable="true"
+                android:clickable="true" />
         </com.google.android.material.textfield.TextInputLayout>
 
         <!-- Dietary Preferences -->

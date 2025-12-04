@@ -104,9 +104,8 @@ public class UserPrefs {
         ).apply();
     }
 
-    // ---------------------------
-    // ⭐ NEW: Currency Preference
-    // ---------------------------
+
+    // Currency Preference
     /**
      * Returns the currency selected by the user.
      * Defaults to "USD ($)" if nothing saved yet.
