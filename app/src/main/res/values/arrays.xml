@@ -8,4 +8,14 @@
         <item>清真</item>
         <item>犹太洁食</item>
     </string-array>
+
+    <string-array name="currency_list">
+        <item>USD ($)</item>
+        <item>EUR (€)</item>
+        <item>GBP (£)</item>
+        <item>CNY (¥)</item>
+        <item>JPY (¥)</item>
+        <item>AUD ($)</item>
+    </string-array>
 </resources>
+

@@ -9,6 +9,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.text.TextUtils;
+
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
@@ -92,8 +94,6 @@ public class MapActivity extends AppCompatActivity implements
     private Polyline currentPolyline;
 
 
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,17 +106,25 @@ public class MapActivity extends AppCompatActivity implements
         double dailyBudget = prefs.getDailyBudgetCents() / 100.0;
         if (dailyBudget <= 0) dailyBudget = 500;
 
+        // Get currency display string from prefs, e.g. "USD ($)"
+        String currencyDisplay = prefs.getCurrencyDisplay();
+        if (TextUtils.isEmpty(currencyDisplay)) {
+            // Fallback if somehow not set
+            currencyDisplay = "USD ($)";
+        }
+
         // Initialize GoogleMapsService
         mapsService = new GoogleMapsService(GOOGLE_MAPS_API_KEY, executorService);
 
 
 
-        // Initialize budget controller
+        // Initialize budget controller with currency
         budgetController = new TripBudgetController(
                 this,
                 binding,
                 dbService,
-                dailyBudget
+                dailyBudget,
+                currencyDisplay
         );
 
         // 2. Init MapView (Google Maps)

@@ -46,6 +46,7 @@
         <item>Instagram Spots</item>
         <item>Family Activities</item>
         <item>Quiet Alleys</item>
+
     </string-array>
 
     <string name="toast_fill_all_info">Please fill in all information, including the start date</string>
@@ -76,7 +77,6 @@
     <string name="desc_back">Back</string>
     <string name="button_ai_assist">✨ AI Trip Assistant</string>
 
-
-
+    <string name="label_currency">Currency</string>
 
 </resources>

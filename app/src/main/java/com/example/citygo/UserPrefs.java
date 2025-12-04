@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 public class UserPrefs {
+
     private static final String PREFS = "CityGoPrefs";
     public static final String K_ONBOARDING = "is_onboarding_complete";
     public static final String K_NAME = "user_name";
@@ -17,38 +18,109 @@ public class UserPrefs {
     public static final String K_INTERESTS = "user_preferences";
     public static final String K_DIETARY = "dietary_preferences";
 
+    // ⭐ New key for saved currency preference
+    public static final String K_CURRENCY_DISPLAY = "currency_display";
+
     private final SharedPreferences sp;
 
     public UserPrefs(Context ctx) {
         sp = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
     }
 
-    public boolean isOnboardingComplete() { return sp.getBoolean(K_ONBOARDING, false); }
-    public void setOnboardingComplete(boolean v) { sp.edit().putBoolean(K_ONBOARDING, v).apply(); }
+    // ---------------------------
+    // Onboarding
+    // ---------------------------
+    public boolean isOnboardingComplete() {
+        return sp.getBoolean(K_ONBOARDING, false);
+    }
 
-    public String getName() { return sp.getString(K_NAME, ""); }
-    public void setName(String v) { sp.edit().putString(K_NAME, v == null ? "" : v).apply(); }
+    public void setOnboardingComplete(boolean v) {
+        sp.edit().putBoolean(K_ONBOARDING, v).apply();
+    }
 
-    public String getEmail() { return sp.getString(K_EMAIL, ""); }
-    public void setEmail(String v) { sp.edit().putString(K_EMAIL, v == null ? "" : v).apply(); }
+    // ---------------------------
+    // Basic Profile Fields
+    // ---------------------------
+    public String getName() {
+        return sp.getString(K_NAME, "");
+    }
 
-    public String getHomeCity() { return sp.getString(K_HOME_CITY, ""); }
-    public void setHomeCity(String v) { sp.edit().putString(K_HOME_CITY, v == null ? "" : v).apply(); }
+    public void setName(String v) {
+        sp.edit().putString(K_NAME, v == null ? "" : v).apply();
+    }
 
-    public int getDailyBudgetCents() { return sp.getInt(K_BUDGET_CENTS, 0); }
-    public void setDailyBudgetCents(int cents) { sp.edit().putInt(K_BUDGET_CENTS, Math.max(0, cents)).apply(); }
+    public String getEmail() {
+        return sp.getString(K_EMAIL, "");
+    }
 
+    public void setEmail(String v) {
+        sp.edit().putString(K_EMAIL, v == null ? "" : v).apply();
+    }
+
+    public String getHomeCity() {
+        return sp.getString(K_HOME_CITY, "");
+    }
+
+    public void setHomeCity(String v) {
+        sp.edit().putString(K_HOME_CITY, v == null ? "" : v).apply();
+    }
+
+    // ---------------------------
+    // Budget
+    // ---------------------------
+    public int getDailyBudgetCents() {
+        return sp.getInt(K_BUDGET_CENTS, 0);
+    }
+
+    public void setDailyBudgetCents(int cents) {
+        sp.edit().putInt(K_BUDGET_CENTS, Math.max(0, cents)).apply();
+    }
+
+    // ---------------------------
+    // Interests
+    // ---------------------------
     public Set<String> getInterests() {
         return new HashSet<>(sp.getStringSet(K_INTERESTS, Collections.emptySet()));
     }
+
     public void setInterests(Set<String> interests) {
-        sp.edit().putStringSet(K_INTERESTS, interests == null ? new HashSet<>() : interests).apply();
+        sp.edit().putStringSet(
+                K_INTERESTS,
+                interests == null ? new HashSet<>() : interests
+        ).apply();
     }
 
+    // ---------------------------
+    // Dietary Preferences
+    // ---------------------------
     public Set<String> getDietary() {
         return new HashSet<>(sp.getStringSet(K_DIETARY, Collections.emptySet()));
     }
+
     public void setDietary(Set<String> dietary) {
-        sp.edit().putStringSet(K_DIETARY, dietary == null ? new HashSet<>() : dietary).apply();
+        sp.edit().putStringSet(
+                K_DIETARY,
+                dietary == null ? new HashSet<>() : dietary
+        ).apply();
+    }
+
+    // ---------------------------
+    // ⭐ NEW: Currency Preference
+    // ---------------------------
+    /**
+     * Returns the currency selected by the user.
+     * Defaults to "USD ($)" if nothing saved yet.
+     */
+    public String getCurrencyDisplay() {
+        return sp.getString(K_CURRENCY_DISPLAY, "USD ($)");
+    }
+
+    /**
+     * Saves the currency string exactly as shown in the dropdown,
+     * e.g. "EUR (€)", "CNY (¥)", "GBP (£)".
+     */
+    public void setCurrencyDisplay(String value) {
+        if (value == null) value = "USD ($)";
+        sp.edit().putString(K_CURRENCY_DISPLAY, value).apply();
     }
 }

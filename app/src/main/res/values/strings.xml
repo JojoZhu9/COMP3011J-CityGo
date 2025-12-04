@@ -76,4 +76,6 @@
     <string name="desc_back">返回</string>
     <string name="button_ai_assist">✨ AI 智能助手帮我规划</string>
 
+    <string name="label_currency">选择货币</string>
+
 </resources>

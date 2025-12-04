@@ -6,32 +6,58 @@
     android:orientation="vertical"
     android:padding="24dp">
 
+    <!-- Dialog title -->
     <TextView
+        android:id="@+id/textTitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Add Expense"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="@android:color/black"/>
+        android:textColor="@android:color/black" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        android:layout_width="match_parent"
+    <!-- Amount label -->
+    <TextView
+        android:id="@+id/textAmountLabel"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Amount (CNY)">
+        android:text="Amount"
+        android:textSize="16sp" />
+
+    <!-- 🔹 This will be set dynamically from UserPrefs (e.g. 'USD ($)', 'EUR (€)' ) -->
+    <TextView
+        android:id="@+id/textCurrencyUnit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:text="USD ($)"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray" />
+
+    <!-- Amount input (no more hardcoded CNY here) -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/inputAmount"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="numberDecimal"/>
+            android:inputType="numberDecimal" />
     </com.google.android.material.textfield.TextInputLayout>
 
+    <!-- Category label -->
     <TextView
+        android:id="@+id/textCategoryLabel"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Category"/>
+        android:text="Category"
+        android:textSize="16sp" />
 
+    <!-- Category chips -->
     <com.google.android.material.chip.ChipGroup
         android:id="@+id/chipGroupCategory"
         android:layout_width="match_parent"
@@ -45,35 +71,35 @@
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Food"/>
+            android:text="Food" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipTransport"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Transport"/>
+            android:text="Transport" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipTicket"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Ticket"/>
+            android:text="Ticket" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipShopping"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Shopping"/>
+            android:text="Shopping" />
 
         <com.google.android.material.chip.Chip
             android:id="@+id/chipOther"
             style="@style/Widget.MaterialComponents.Chip.Choice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Other"/>
+            android:text="Other" />
     </com.google.android.material.chip.ChipGroup>
 
 </LinearLayout>

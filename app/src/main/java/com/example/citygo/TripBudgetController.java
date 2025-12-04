@@ -1,5 +1,6 @@
 package com.example.citygo;
 
+import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Toast;
@@ -28,14 +29,25 @@ public class TripBudgetController {
     private int tripId = -1;
     private double dailyBudget;
 
+    // NEW: currency string as shown in Profile, e.g. "USD ($)"
+    private String currencyDisplay;
+
     public TripBudgetController(AppCompatActivity activity,
                                 ActivityMapBinding binding,
                                 DBService dbService,
-                                double dailyBudget) {
+                                double dailyBudget,
+                                String currencyDisplay) {
         this.activity = activity;
         this.binding = binding;
         this.dbService = dbService;
         this.dailyBudget = dailyBudget;
+
+        // Fallback if nothing is provided
+        if (TextUtils.isEmpty(currencyDisplay)) {
+            this.currencyDisplay = "USD ($)";
+        } else {
+            this.currencyDisplay = currencyDisplay;
+        }
     }
 
     public void setTripId(int tripId) {
@@ -44,6 +56,12 @@ public class TripBudgetController {
 
     public void setDailyBudget(double dailyBudget) {
         this.dailyBudget = dailyBudget;
+    }
+
+    public void setCurrencyDisplay(String currencyDisplay) {
+        if (!TextUtils.isEmpty(currencyDisplay)) {
+            this.currencyDisplay = currencyDisplay;
+        }
     }
 
     /**
@@ -58,8 +76,16 @@ public class TripBudgetController {
 
         dbService.getDailyTotal(tripId, dateStr, total ->
                 activity.runOnUiThread(() -> {
+                    // Show: "<CURRENCY> spent / budget"
+                    // e.g. "USD ($) 35.00 / 100.00"
                     binding.textExpense.setText(
-                            String.format(Locale.US, "%.2f / %.0f", total, dailyBudget)
+                            String.format(
+                                    Locale.US,
+                                    "%s %.2f / %.2f",
+                                    currencyDisplay,
+                                    total,
+                                    dailyBudget
+                            )
                     );
 
                     int progress = (dailyBudget > 0)
@@ -124,11 +150,25 @@ public class TripBudgetController {
         View view = LayoutInflater.from(activity).inflate(R.layout.dialog_add_expense, null);
         builder.setView(view);
 
+        // --- Amount + category views ---
         com.google.android.material.textfield.TextInputEditText inputAmount =
                 view.findViewById(R.id.inputAmount);
         com.google.android.material.chip.ChipGroup chipGroup =
                 view.findViewById(R.id.chipGroupCategory);
 
+        // --- NEW: currency label under the amount field ---
+        android.widget.TextView textCurrencyUnit = view.findViewById(R.id.textCurrencyUnit);
+
+        // Read display currency from prefs (e.g. "USD ($)", "EUR (€)")
+        UserPrefs prefs = new UserPrefs(activity);
+        String currencyDisplay = prefs.getCurrencyDisplay();
+        if (android.text.TextUtils.isEmpty(currencyDisplay)) {
+            // Fallback if user never set it – you can change this default if you like
+            currencyDisplay = "CNY (¥)";
+        }
+        textCurrencyUnit.setText(currencyDisplay);
+
+        // --- Buttons ---
         builder.setPositiveButton("Save", (dialog, which) -> {
             String amountStr = inputAmount.getText() != null
                     ? inputAmount.getText().toString()
@@ -151,4 +191,5 @@ public class TripBudgetController {
         builder.setNegativeButton("Cancel", null);
         builder.show();
     }
+
 }
