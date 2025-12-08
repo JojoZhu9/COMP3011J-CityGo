@@ -40,7 +40,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        loadTrips(); // 每次回到页面都刷新列表
+        loadTrips();
     }
 
     private void setupRecyclerView() {
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
                         .setMessage("Are you sure you want to delete the trip to " + trip.targetCity + "?")
                         .setPositiveButton("Delete", (dialog, which) -> {
                             dbService.deleteTrip(trip);
-                            loadTrips(); // 刷新列表
+                            loadTrips();
                         })
                         .setNegativeButton("Cancel", null)
                         .show();

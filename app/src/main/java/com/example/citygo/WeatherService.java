@@ -19,7 +19,6 @@ public class WeatherService {
     public static void fetchWeather(Context context, double lat, double lon, String dateStr, WeatherCallback callback) {
         new Thread(() -> {
             try {
-                // 构造 URL (Open-Meteo)
                 String urlStr = String.format(Locale.US,
                         "https://api.open-meteo.com/v1/forecast?latitude=%f&longitude=%f&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=auto&start_date=%s&end_date=%s",
                         lat, lon, dateStr, dateStr);

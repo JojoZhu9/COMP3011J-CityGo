@@ -71,7 +71,6 @@ public class CreateTripActivity extends AppCompatActivity {
 
         dbService = new DBService(this);
 
-        // 【修改】当 City 输入框失去焦点时，去获取城市坐标，锁定 Hotel 搜索范围
         binding.cityEditText.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 updateCityBounds(binding.cityEditText.getText().toString().trim());
