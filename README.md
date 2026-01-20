@@ -35,7 +35,6 @@
 |:---:|:---:|:---:|:---:|
 | <img src="screenshots/home.png" alt="Home" width="200"/> | <img src="screenshots/map.png" alt="Map" width="200"/> | <img src="screenshots/route.png" alt="Route" width="200"/> | <img src="screenshots/profile.png" alt="Profile" width="200"/> |
 
-*(Note: Please ensure images exist in the `screenshots` folder)*
 
 ## 🛠️ Tech Stack
 
